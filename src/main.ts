@@ -57,28 +57,22 @@ const STORE_KEY = 'tailor.profiles.v1';
 const $ = <T extends HTMLElement>(id: string): T =>
   document.getElementById(id) as T;
 
-function load(): Profile[] {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    return raw ? (JSON.parse(raw) as Profile[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persist(): boolean {
-  try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(profiles));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-let profiles: Profile[] = load();
+let profiles: Profile[] = [];
 let editingId: string | null = null;
 let unit: Unit = 'in';
 let toastTimer = 0;
+let currentSession: any = null;
+
+async function fetchProfiles() {
+  if (!currentSession) return;
+  const { data, error } = await supabase.from('customers').select('*').eq('tailor_id', currentSession.user.id);
+  if (error) {
+    console.error('Error fetching profiles:', error);
+    return;
+  }
+  profiles = data || [];
+  renderSaved();
+}
 
 function esc(s: string): string {
   return s
@@ -149,9 +143,7 @@ function collect(): Profile {
     m[i.dataset.key as string] = i.value.trim();
   });
   return {
-    id:
-      editingId ||
-      'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    id: editingId || crypto.randomUUID(),
     date: $<HTMLInputElement>('f-date').value,
     name: $<HTMLInputElement>('f-name').value.trim(),
     contact: $<HTMLInputElement>('f-contact').value.trim(),
@@ -270,7 +262,7 @@ function printCard(p: Profile): void {
   window.print();
 }
 
-function save(): void {
+async function save(): Promise<void> {
   const p = collect();
   const err = $('form-error');
   if (!p.name) {
@@ -280,14 +272,34 @@ function save(): void {
     return;
   }
   err.classList.add('hide');
-  const idx = profiles.findIndex(x => x.id === p.id);
-  if (idx >= 0) profiles[idx] = p;
-  else profiles.push(p);
-  if (!persist()) {
-    err.textContent = 'Could not save: browser storage is unavailable.';
+  
+  if (!currentSession) {
+    err.textContent = 'You must be logged in to save.';
     err.classList.remove('hide');
     return;
   }
+
+  $('btn-save').disabled = true;
+  $('btn-save').textContent = 'Saving...';
+
+  const { error } = await supabase.from('customers').upsert({
+    ...p,
+    tailor_id: currentSession.user.id
+  });
+
+  $('btn-save').disabled = false;
+  $('btn-save').textContent = editingId ? 'Update Profile' : 'Save Profile';
+
+  if (error) {
+    err.textContent = 'Could not save to database: ' + error.message;
+    err.classList.remove('hide');
+    return;
+  }
+
+  const idx = profiles.findIndex(x => x.id === p.id);
+  if (idx >= 0) profiles[idx] = p;
+  else profiles.push(p);
+
   $('count').textContent = String(profiles.length);
   toast('Saved ' + p.name);
   fill(null);
@@ -306,7 +318,7 @@ $('btn-print').addEventListener('click', () => printCard(collect()));
 $('btn-clear').addEventListener('click', () => fill(null));
 $('search').addEventListener('input', renderSaved);
 
-$('saved-list').addEventListener('click', e => {
+$('saved-list').addEventListener('click', async e => {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(
     'button[data-act]'
   );
@@ -320,8 +332,14 @@ $('saved-list').addEventListener('click', e => {
     printCard(p);
   } else if (btn.dataset.act === 'delete') {
     if (window.confirm('Delete ' + p.name + '? This cannot be undone.')) {
+      btn.disabled = true;
+      const { error } = await supabase.from('customers').delete().eq('id', p.id);
+      if (error) {
+        toast('Could not delete: ' + error.message);
+        btn.disabled = false;
+        return;
+      }
       profiles = profiles.filter(x => x.id !== p.id);
-      persist();
       renderSaved();
       toast('Profile deleted');
     }
@@ -344,6 +362,7 @@ async function initAuth() {
   const switchText = $('switch-text');
   const wrapForgot = $('wrap-forgot');
   const wrapPassword = $('wrap-password');
+  const wrapSignupFields = $('wrap-signup-fields');
   const linkForgot = $('link-forgot');
   const err = $('login-error');
   const msg = $('login-msg');
@@ -360,6 +379,7 @@ async function initAuth() {
       btnSwitch.textContent = 'Create an account';
       wrapForgot.classList.remove('hide');
       wrapPassword.classList.remove('hide');
+      wrapSignupFields.classList.add('hide');
     } else if (mode === 'signup') {
       title.textContent = 'Create Account';
       btnAction.textContent = 'Sign Up';
@@ -367,6 +387,7 @@ async function initAuth() {
       btnSwitch.textContent = 'Sign In';
       wrapForgot.classList.add('hide');
       wrapPassword.classList.remove('hide');
+      wrapSignupFields.classList.remove('hide');
     } else if (mode === 'reset') {
       title.textContent = 'Reset Password';
       btnAction.textContent = 'Send Reset Link';
@@ -374,6 +395,7 @@ async function initAuth() {
       btnSwitch.textContent = 'Sign In';
       wrapForgot.classList.add('hide');
       wrapPassword.classList.add('hide');
+      wrapSignupFields.classList.add('hide');
     }
   }
 
@@ -421,7 +443,18 @@ async function initAuth() {
       const res = await supabase.auth.signInWithPassword({ email, password });
       error = res.error;
     } else if (authMode === 'signup') {
-      const res = await supabase.auth.signUp({ email, password });
+      const shop_name = $<HTMLInputElement>('l-shop').value;
+      const first_name = $<HTMLInputElement>('l-first').value;
+      const last_name = $<HTMLInputElement>('l-last').value;
+      const phone = $<HTMLInputElement>('l-phone').value;
+      
+      const res = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: { shop_name, first_name, last_name, phone }
+        }
+      });
       error = res.error;
       if (!error) {
         msg.textContent = 'Check your email for the confirmation link!';
@@ -449,12 +482,16 @@ async function initAuth() {
 }
 
 function updateAuthState(session: any) {
+  currentSession = session;
   if (session) {
     $('app-login').classList.add('hide');
     $('app-content').classList.remove('hide');
+    fetchProfiles();
   } else {
     $('app-login').classList.remove('hide');
     $('app-content').classList.add('hide');
+    profiles = [];
+    renderSaved();
   }
 }
 
