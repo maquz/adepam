@@ -171,12 +171,17 @@ function fill(p: Profile | null): void {
   $('form-error').classList.add('hide');
 }
 
-function showView(v: 'form' | 'saved'): void {
+function showView(v: 'form' | 'saved' | 'profile'): void {
   $('view-form').classList.toggle('hide', v !== 'form');
   $('view-saved').classList.toggle('hide', v !== 'saved');
+  $('view-my-profile').classList.toggle('hide', v !== 'profile');
+  
   $('tab-form').classList.toggle('active', v === 'form');
   $('tab-saved').classList.toggle('active', v === 'saved');
+  $('tab-profile').classList.toggle('active', v === 'profile');
+  
   if (v === 'saved') renderSaved();
+  if (v === 'profile') renderProfile();
   window.scrollTo(0, 0);
 }
 
@@ -225,6 +230,28 @@ function renderSaved(): void {
   empty.textContent = profiles.length
     ? 'No clients match your search.'
     : 'No saved clients yet.';
+}
+
+function renderProfile(): void {
+  if (!currentSession) return;
+  const user = currentSession.user;
+  const meta = user.user_metadata || {};
+  
+  const shop = meta.shop_name || 'My Shop';
+  const name = meta.full_name || 'Tailor Name';
+  
+  $('p-shop-name').textContent = shop;
+  $('p-full-name').textContent = name;
+  $('p-avatar').textContent = shop.charAt(0).toUpperCase();
+  
+  $<HTMLInputElement>('p-input-shop').value = shop;
+  $<HTMLInputElement>('p-input-name').value = name;
+  $<HTMLInputElement>('p-input-phone').value = meta.phone || '';
+  $<HTMLInputElement>('p-input-email').value = user.email || '';
+  
+  $('p-stat-clients').textContent = String(profiles.length);
+  const totalMeas = profiles.reduce((acc, p) => acc + Object.keys(p.m).filter(k => p.m[k]).length, 0);
+  $('p-stat-meas').textContent = String(totalMeas);
 }
 
 function printCard(p: Profile): void {
@@ -311,12 +338,69 @@ $('count').textContent = String(profiles.length);
 
 $('tab-form').addEventListener('click', () => showView('form'));
 $('tab-saved').addEventListener('click', () => showView('saved'));
+$('tab-profile').addEventListener('click', () => showView('profile'));
 $('unit-in').addEventListener('click', () => setUnit('in'));
 $('unit-cm').addEventListener('click', () => setUnit('cm'));
 $('btn-save').addEventListener('click', save);
 $('btn-print').addEventListener('click', () => printCard(collect()));
 $('btn-clear').addEventListener('click', () => fill(null));
 $('search').addEventListener('input', renderSaved);
+
+$('btn-update-profile').addEventListener('click', async () => {
+  const btn = $<HTMLButtonElement>('btn-update-profile');
+  const shop_name = $<HTMLInputElement>('p-input-shop').value;
+  const full_name = $<HTMLInputElement>('p-input-name').value;
+  const phone = $<HTMLInputElement>('p-input-phone').value;
+  
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+  
+  const { data, error } = await supabase.auth.updateUser({
+    data: { shop_name, full_name, phone }
+  });
+  
+  btn.disabled = false;
+  btn.textContent = 'Update Profile';
+  
+  if (error) {
+    toast('Error: ' + error.message);
+  } else {
+    currentSession.user = data.user;
+    renderProfile();
+    toast('Profile updated');
+  }
+});
+
+$('btn-update-password').addEventListener('click', async () => {
+  const btn = $<HTMLButtonElement>('btn-update-password');
+  const pwd = $<HTMLInputElement>('p-input-pwd').value;
+  const confirm = $<HTMLInputElement>('p-input-confirm').value;
+  
+  if (!pwd) {
+    toast('Please enter a password');
+    return;
+  }
+  if (pwd !== confirm) {
+    toast('Passwords do not match');
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+  
+  const { error } = await supabase.auth.updateUser({ password: pwd });
+  
+  btn.disabled = false;
+  btn.textContent = 'Update Password';
+  
+  if (error) {
+    toast('Error: ' + error.message);
+  } else {
+    toast('Password updated');
+    $<HTMLInputElement>('p-input-pwd').value = '';
+    $<HTMLInputElement>('p-input-confirm').value = '';
+  }
+});
 
 $('saved-list').addEventListener('click', async e => {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(

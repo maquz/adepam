@@ -113,9 +113,9 @@
               </div>
             </div>
             <nav class="tabs" style="align-items: center;">
-              <button id="tab-form" class="tab active" type="button">New Profile</button>
+              <button id="tab-form" class="tab active" type="button">New Client</button>
               <button id="tab-saved" class="tab" type="button">Saved Clients <span id="count" class="badge">0</span></button>
-              <button id="btn-logout" class="btn ghost sm" type="button" style="margin-left: 16px;">Logout</button>
+              <button id="tab-profile" class="tab" type="button">My Profile</button>
             </nav>
           </div>
         </header>
@@ -162,6 +162,68 @@
           <input id="search" class="search" type="search" placeholder="Search by name or phone" autocomplete="off" />
           <div id="saved-list" class="saved-list"></div>
           <p id="empty" class="empty hide"></p>
+        </section>
+
+        <section id="view-my-profile" class="hide">
+          <div class="card" style="background: var(--accent); color: white; border: none; text-align: center; margin-bottom: 24px; padding: 32px 16px;">
+            <div id="p-avatar" style="width: 64px; height: 64px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold;">T</div>
+            <h2 id="p-shop-name" style="margin: 0; font-size: 24px;">Shop Name</h2>
+            <p id="p-full-name" style="margin: 4px 0 16px; opacity: 0.8; font-size: 14px;">Tailor Name</p>
+            
+            <div style="display: flex; gap: 16px; justify-content: center; background: rgba(0,0,0,0.1); border-radius: 12px; padding: 12px;">
+              <div style="flex: 1;">
+                <div style="font-size: 12px; opacity: 0.8; margin-bottom: 4px;">Total Clients</div>
+                <div id="p-stat-clients" style="font-weight: bold; font-size: 18px;">0</div>
+              </div>
+              <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
+              <div style="flex: 1;">
+                <div style="font-size: 12px; opacity: 0.8; margin-bottom: 4px;">Measurements</div>
+                <div id="p-stat-meas" style="font-weight: bold; font-size: 18px;">0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="group-title">Profile Information</h2>
+            <div class="grid-fields wide">
+              <label class="field" style="margin-bottom: 12px;">
+                <span>Shop Name</span>
+                <input id="p-input-shop" type="text" />
+              </label>
+              <label class="field" style="margin-bottom: 12px;">
+                <span>Full Name</span>
+                <input id="p-input-name" type="text" />
+              </label>
+              <label class="field" style="margin-bottom: 12px;">
+                <span>Phone Number</span>
+                <input id="p-input-phone" type="tel" />
+              </label>
+              <label class="field" style="margin-bottom: 16px;">
+                <span>Email Address (Read-only)</span>
+                <input id="p-input-email" type="email" disabled style="background: var(--bg); opacity: 0.7;" />
+              </label>
+              <button id="btn-update-profile" class="btn primary" type="button" style="width: 100%;">Update Profile</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top: 24px;">
+            <h2 class="group-title">Change Password</h2>
+            <div class="grid-fields wide">
+              <label class="field" style="margin-bottom: 12px;">
+                <span>New Password</span>
+                <input id="p-input-pwd" type="password" placeholder="••••••••" />
+              </label>
+              <label class="field" style="margin-bottom: 16px;">
+                <span>Confirm New Password</span>
+                <input id="p-input-confirm" type="password" placeholder="••••••••" />
+              </label>
+              <button id="btn-update-password" class="btn" type="button" style="width: 100%;">Update Password</button>
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <button id="btn-logout" class="btn ghost sm" type="button" style="color: #d32f2f;">Logout from Adepam</button>
+          </div>
         </section>
       </main>
       </div>
