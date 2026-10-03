@@ -53,7 +53,7 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
   },
 ];
 
-const STORE_KEY = 'tailor.profiles.v1';
+
 const $ = <T extends HTMLElement>(id: string): T =>
   document.getElementById(id) as T;
 
@@ -279,7 +279,7 @@ async function save(): Promise<void> {
     return;
   }
 
-  $('btn-save').disabled = true;
+  $<HTMLButtonElement>('btn-save').disabled = true;
   $('btn-save').textContent = 'Saving...';
 
   const { error } = await supabase.from('customers').upsert({
@@ -287,7 +287,7 @@ async function save(): Promise<void> {
     tailor_id: currentSession.user.id
   });
 
-  $('btn-save').disabled = false;
+  $<HTMLButtonElement>('btn-save').disabled = false;
   $('btn-save').textContent = editingId ? 'Update Profile' : 'Save Profile';
 
   if (error) {
@@ -354,60 +354,117 @@ async function initAuth() {
     updateAuthState(session);
   });
 
-  let authMode: 'signin' | 'signup' | 'reset' = 'signin';
+  let authMode: 'signin' | 'signup1' | 'signup2' | 'reset' = 'signin';
 
   const title = $('auth-title');
-  const btnAction = $('btn-action');
-  const btnSwitch = $('btn-switch');
+  const subtitle = $('auth-subtitle');
+  const btnSwitch = $<HTMLButtonElement>('btn-switch');
   const switchText = $('switch-text');
+  
+  const stepIndicator = $('step-indicator');
+  const step1Circle = $('step-1-circle');
+  const step2Circle = $('step-2-circle');
+  
+  const wrapStep1 = $('wrap-step-1');
+  const wrapStep2 = $('wrap-step-2');
+  const signupFields1 = $('signup-fields-1');
+  const signupFields2 = $('signup-fields-2');
+  const signupFields3 = $('signup-fields-3');
   const wrapForgot = $('wrap-forgot');
-  const wrapPassword = $('wrap-password');
-  const wrapSignupFields = $('wrap-signup-fields');
   const linkForgot = $('link-forgot');
+  const emailLabel = $('l-email-label');
+
+  const btnSignin = $<HTMLButtonElement>('btn-signin');
+  const btnNext = $<HTMLButtonElement>('btn-next');
+  const btnBack = $<HTMLButtonElement>('btn-back');
+  const btnSignup = $<HTMLButtonElement>('btn-signup');
+  const btnReset = $<HTMLButtonElement>('btn-reset');
+  
+  const actionSignin = $('action-signin');
+  const actionSignup1 = $('action-signup-1');
+  const actionSignup2 = $('action-signup-2');
+  const actionReset = $('action-reset');
+
   const err = $('login-error');
   const msg = $('login-msg');
+  const inpPassword = $<HTMLInputElement>('l-password');
 
-  function setMode(mode: 'signin' | 'signup' | 'reset') {
+  function setMode(mode: 'signin' | 'signup1' | 'signup2' | 'reset') {
     authMode = mode;
     err.classList.add('hide');
     msg.classList.add('hide');
     
+    // Reset display
+    stepIndicator.classList.add('hide');
+    wrapStep1.classList.add('hide');
+    wrapStep2.classList.add('hide');
+    signupFields1.classList.add('hide');
+    signupFields2.classList.add('hide');
+    signupFields3.classList.add('hide');
+    wrapForgot.classList.add('hide');
+    actionSignin.classList.add('hide');
+    actionSignup1.classList.add('hide');
+    actionSignup2.classList.add('hide');
+    actionReset.classList.add('hide');
+    
     if (mode === 'signin') {
       title.textContent = 'Tailor Login';
-      btnAction.textContent = 'Sign In';
+      subtitle.textContent = '';
       switchText.textContent = 'New here?';
       btnSwitch.textContent = 'Create an account';
+      wrapStep1.classList.remove('hide');
+      wrapStep2.classList.remove('hide');
       wrapForgot.classList.remove('hide');
-      wrapPassword.classList.remove('hide');
-      wrapSignupFields.classList.add('hide');
-    } else if (mode === 'signup') {
+      actionSignin.classList.remove('hide');
+      emailLabel.textContent = 'Email';
+    } else if (mode === 'signup1') {
       title.textContent = 'Create Account';
-      btnAction.textContent = 'Sign Up';
+      subtitle.textContent = 'Join Adepam today!';
       switchText.textContent = 'Already have an account?';
       btnSwitch.textContent = 'Sign In';
-      wrapForgot.classList.add('hide');
-      wrapPassword.classList.remove('hide');
-      wrapSignupFields.classList.remove('hide');
+      stepIndicator.classList.remove('hide');
+      step1Circle.style.background = 'var(--accent)';
+      step1Circle.style.color = 'white';
+      step2Circle.style.background = 'var(--line)';
+      step2Circle.style.color = 'var(--muted)';
+      wrapStep1.classList.remove('hide');
+      signupFields1.classList.remove('hide');
+      signupFields2.classList.remove('hide');
+      actionSignup1.classList.remove('hide');
+      emailLabel.textContent = 'Email Address *';
+    } else if (mode === 'signup2') {
+      title.textContent = 'Create Account';
+      subtitle.textContent = 'Secure your account';
+      switchText.textContent = 'Already have an account?';
+      btnSwitch.textContent = 'Sign In';
+      stepIndicator.classList.remove('hide');
+      step1Circle.style.background = 'var(--accent-soft)';
+      step1Circle.style.color = 'var(--accent)';
+      step2Circle.style.background = 'var(--accent)';
+      step2Circle.style.color = 'white';
+      wrapStep2.classList.remove('hide');
+      signupFields3.classList.remove('hide');
+      actionSignup2.classList.remove('hide');
     } else if (mode === 'reset') {
       title.textContent = 'Reset Password';
-      btnAction.textContent = 'Send Reset Link';
+      subtitle.textContent = 'We will send you a reset link.';
       switchText.textContent = 'Remembered your password?';
       btnSwitch.textContent = 'Sign In';
-      wrapForgot.classList.add('hide');
-      wrapPassword.classList.add('hide');
-      wrapSignupFields.classList.add('hide');
+      wrapStep1.classList.remove('hide');
+      actionReset.classList.remove('hide');
+      emailLabel.textContent = 'Email';
     }
   }
 
   btnSwitch.addEventListener('click', () => {
-    if (authMode === 'signin' || authMode === 'reset') setMode('signup');
+    if (authMode === 'signin' || authMode === 'reset') setMode('signup1');
     else setMode('signin');
   });
 
   linkForgot.addEventListener('click', () => setMode('reset'));
+  btnBack.addEventListener('click', () => setMode('signup1'));
 
   const btnTogglePwd = $('btn-toggle-pwd');
-  const inpPassword = $<HTMLInputElement>('l-password');
   btnTogglePwd.addEventListener('click', () => {
     if (inpPassword.type === 'password') {
       inpPassword.type = 'text';
@@ -418,62 +475,86 @@ async function initAuth() {
     }
   });
 
-  btnAction.addEventListener('click', async () => {
+  btnNext.addEventListener('click', () => {
+    err.classList.add('hide');
+    const shop = $<HTMLInputElement>('l-shop').value;
+    const name = $<HTMLInputElement>('l-name').value;
+    const email = $<HTMLInputElement>('l-email').value;
+    if (!shop || !name || !email) {
+      err.textContent = 'Shop Name, Full Name, and Email are required.';
+      err.classList.remove('hide');
+      return;
+    }
+    setMode('signup2');
+  });
+
+  btnSignin.addEventListener('click', async () => {
     const email = $<HTMLInputElement>('l-email').value;
     const password = inpPassword.value;
     err.classList.add('hide');
-    msg.classList.add('hide');
+    if (!email || !password) {
+      err.textContent = 'Please enter email and password';
+      err.classList.remove('hide');
+      return;
+    }
+    btnSignin.disabled = true;
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      err.textContent = error.message;
+      err.classList.remove('hide');
+    }
+    btnSignin.disabled = false;
+  });
+
+  btnSignup.addEventListener('click', async () => {
+    err.classList.add('hide');
+    const email = $<HTMLInputElement>('l-email').value;
+    const password = inpPassword.value;
+    const confirm = $<HTMLInputElement>('l-confirm-password').value;
+    if (!password || password !== confirm) {
+      err.textContent = 'Passwords do not match';
+      err.classList.remove('hide');
+      return;
+    }
+    btnSignup.disabled = true;
+    const shop_name = $<HTMLInputElement>('l-shop').value;
+    const full_name = $<HTMLInputElement>('l-name').value;
+    const phone = $<HTMLInputElement>('l-phone').value;
     
+    const { error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: { data: { shop_name, full_name, phone } }
+    });
+    if (error) {
+      err.textContent = error.message;
+      err.classList.remove('hide');
+    } else {
+      msg.textContent = 'Check your email for the confirmation link!';
+      msg.classList.remove('hide');
+      setMode('signin');
+    }
+    btnSignup.disabled = false;
+  });
+
+  btnReset.addEventListener('click', async () => {
+    const email = $<HTMLInputElement>('l-email').value;
+    err.classList.add('hide');
     if (!email) {
       err.textContent = 'Please enter an email';
       err.classList.remove('hide');
       return;
     }
-    
-    if (authMode !== 'reset' && !password) {
-      err.textContent = 'Please enter a password';
-      err.classList.remove('hide');
-      return;
-    }
-
-    btnAction.disabled = true;
-    let error = null;
-
-    if (authMode === 'signin') {
-      const res = await supabase.auth.signInWithPassword({ email, password });
-      error = res.error;
-    } else if (authMode === 'signup') {
-      const shop_name = $<HTMLInputElement>('l-shop').value;
-      const first_name = $<HTMLInputElement>('l-first').value;
-      const last_name = $<HTMLInputElement>('l-last').value;
-      const phone = $<HTMLInputElement>('l-phone').value;
-      
-      const res = await supabase.auth.signUp({ 
-        email, 
-        password,
-        options: {
-          data: { shop_name, first_name, last_name, phone }
-        }
-      });
-      error = res.error;
-      if (!error) {
-        msg.textContent = 'Check your email for the confirmation link!';
-        msg.classList.remove('hide');
-      }
-    } else if (authMode === 'reset') {
-      const res = await supabase.auth.resetPasswordForEmail(email);
-      error = res.error;
-      if (!error) {
-        msg.textContent = 'Password reset link sent to your email.';
-        msg.classList.remove('hide');
-      }
-    }
-
+    btnReset.disabled = true;
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) {
       err.textContent = error.message;
       err.classList.remove('hide');
+    } else {
+      msg.textContent = 'Password reset link sent to your email.';
+      msg.classList.remove('hide');
     }
-    btnAction.disabled = false;
+    btnReset.disabled = false;
   });
 
   $('btn-logout').addEventListener('click', async () => {
