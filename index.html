@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tailor Measurement Cards</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <header class="screen-only top">
+        <div class="wrap top-in">
+          <div>
+            <p class="eyebrow">Tailor's Atelier</p>
+            <h1>Measurement Card</h1>
+          </div>
+          <nav class="tabs">
+            <button id="tab-form" class="tab active" type="button">New Profile</button>
+            <button id="tab-saved" class="tab" type="button">Saved Clients <span id="count" class="badge">0</span></button>
+          </nav>
+        </div>
+      </header>
+
+      <main class="screen-only wrap">
+        <section id="view-form">
+          <div class="card">
+            <h2 class="group-title">Customer</h2>
+            <div class="grid-fields wide">
+              <label class="field"><span>Date</span><input id="f-date" type="date" /></label>
+              <label class="field"><span>Customer's Name</span><input id="f-name" type="text" placeholder="Full name" autocomplete="off" /></label>
+              <label class="field"><span>Address / Tel</span><input id="f-contact" type="text" placeholder="Address or phone number" autocomplete="off" /></label>
+              <label class="field"><span>Charge</span>
+                <div class="prefix"><b>₵</b><input id="f-charge" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" /></div>
+              </label>
+            </div>
+          </div>
+
+          <div class="unit-row">
+            <p>Measurements in <strong id="unit-note">inches</strong></p>
+            <div class="seg">
+              <button id="unit-in" type="button" class="active">in</button>
+              <button id="unit-cm" type="button">cm</button>
+            </div>
+          </div>
+
+          <div id="measure-groups"></div>
+
+          <div class="card">
+            <h2 class="group-title">Material &amp; Notes</h2>
+            <label class="field"><span>Type of Material</span><textarea id="f-material" rows="2" placeholder="e.g. Ankara wax print, 6 yards"></textarea></label>
+            <label class="field" style="margin-top: 14px"><span>Notes / Special Instructions</span><textarea id="f-notes" rows="4" placeholder="Extra tailoring details"></textarea></label>
+          </div>
+
+          <p id="form-error" class="error hide" role="alert"></p>
+          <div class="actions">
+            <button id="btn-save" class="btn primary" type="button">Save Profile</button>
+            <button id="btn-print" class="btn" type="button">Print / Save PDF</button>
+            <button id="btn-clear" class="btn ghost" type="button">Clear Form</button>
+          </div>
+        </section>
+
+        <section id="view-saved" class="hide">
+          <input id="search" class="search" type="search" placeholder="Search by name or phone" autocomplete="off" />
+          <div id="saved-list" class="saved-list"></div>
+          <p id="empty" class="empty hide"></p>
+        </section>
+      </main>
+
+      <div id="print-sheet"></div>
+      <div id="toast" class="toast" role="status"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
