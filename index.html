@@ -13,18 +13,57 @@
   </head>
   <body>
     <div id="app">
-      <header class="screen-only top">
-        <div class="wrap top-in">
-          <div>
-            <p class="eyebrow">Tailor's Atelier</p>
-            <h1>Measurement Card</h1>
+      <div id="app-login" class="screen-only wrap" style="max-width: 400px; margin-top: 100px;">
+        <div class="card" style="text-align: center; position: relative;">
+          <img src="/logo.jpg" alt="Adepam Card" style="height: 100px; margin: 0 auto 24px; display: block; border-radius: 8px;" />
+          
+          <h2 id="auth-title" class="group-title" style="margin-bottom: 16px;">Tailor Login</h2>
+          
+          <label class="field" style="text-align: left;">
+            <span>Email</span>
+            <input id="l-email" type="email" placeholder="tailor@example.com" autocomplete="email" />
+          </label>
+          
+          <label id="wrap-password" class="field" style="text-align: left; margin-top: 12px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Password</span>
+              <button type="button" id="btn-toggle-pwd" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;padding:0;">Show</button>
+            </div>
+            <input id="l-password" type="password" placeholder="••••••••" autocomplete="current-password" />
+          </label>
+          
+          <div id="wrap-forgot" style="text-align: right; margin-top: 8px;">
+            <button type="button" id="link-forgot" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;text-decoration:underline;padding:0;">Forgot password?</button>
           </div>
-          <nav class="tabs">
-            <button id="tab-form" class="tab active" type="button">New Profile</button>
-            <button id="tab-saved" class="tab" type="button">Saved Clients <span id="count" class="badge">0</span></button>
-          </nav>
+          
+          <p id="login-error" class="error hide" role="alert" style="margin-top: 12px; text-align: left;"></p>
+          <p id="login-msg" class="hide" role="status" style="margin-top: 12px; color: #1e8e3e; background: #e6f4ea; border-radius: 10px; padding: 10px 12px; text-align: left; font-size: 14px;"></p>
+          
+          <button id="btn-action" class="btn primary" type="button" style="width: 100%; margin-top: 16px;">Sign In</button>
+          
+          <p id="wrap-switch" style="margin-top: 16px; font-size: 14px; color: var(--muted);">
+            <span id="switch-text">New here?</span> 
+            <button type="button" id="btn-switch" style="background:none;border:none;color:var(--accent);cursor:pointer;font-weight:600;padding:0;">Create an account</button>
+          </p>
         </div>
-      </header>
+      </div>
+
+      <div id="app-content" class="hide">
+        <header class="screen-only top">
+          <div class="wrap top-in">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <img src="/logo.jpg" alt="Adepam" style="height: 48px; border-radius: 4px;" />
+              <div>
+                <h1>Measurement Card</h1>
+              </div>
+            </div>
+            <nav class="tabs" style="align-items: center;">
+              <button id="tab-form" class="tab active" type="button">New Profile</button>
+              <button id="tab-saved" class="tab" type="button">Saved Clients <span id="count" class="badge">0</span></button>
+              <button id="btn-logout" class="btn ghost sm" type="button" style="margin-left: 16px;">Logout</button>
+            </nav>
+          </div>
+        </header>
 
       <main class="screen-only wrap">
         <section id="view-form">
@@ -70,6 +109,7 @@
           <p id="empty" class="empty hide"></p>
         </section>
       </main>
+      </div>
 
       <div id="print-sheet"></div>
       <div id="toast" class="toast" role="status"></div>

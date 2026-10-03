@@ -1,4 +1,5 @@
 import './styles.css';
+import { supabase } from './supabase';
 
 type Unit = 'in' | 'cm';
 
@@ -326,3 +327,135 @@ $('saved-list').addEventListener('click', e => {
     }
   }
 });
+
+async function initAuth() {
+  const { data: { session } } = await supabase.auth.getSession();
+  updateAuthState(session);
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    updateAuthState(session);
+  });
+
+  let authMode: 'signin' | 'signup' | 'reset' = 'signin';
+
+  const title = $('auth-title');
+  const btnAction = $('btn-action');
+  const btnSwitch = $('btn-switch');
+  const switchText = $('switch-text');
+  const wrapForgot = $('wrap-forgot');
+  const wrapPassword = $('wrap-password');
+  const linkForgot = $('link-forgot');
+  const err = $('login-error');
+  const msg = $('login-msg');
+
+  function setMode(mode: 'signin' | 'signup' | 'reset') {
+    authMode = mode;
+    err.classList.add('hide');
+    msg.classList.add('hide');
+    
+    if (mode === 'signin') {
+      title.textContent = 'Tailor Login';
+      btnAction.textContent = 'Sign In';
+      switchText.textContent = 'New here?';
+      btnSwitch.textContent = 'Create an account';
+      wrapForgot.classList.remove('hide');
+      wrapPassword.classList.remove('hide');
+    } else if (mode === 'signup') {
+      title.textContent = 'Create Account';
+      btnAction.textContent = 'Sign Up';
+      switchText.textContent = 'Already have an account?';
+      btnSwitch.textContent = 'Sign In';
+      wrapForgot.classList.add('hide');
+      wrapPassword.classList.remove('hide');
+    } else if (mode === 'reset') {
+      title.textContent = 'Reset Password';
+      btnAction.textContent = 'Send Reset Link';
+      switchText.textContent = 'Remembered your password?';
+      btnSwitch.textContent = 'Sign In';
+      wrapForgot.classList.add('hide');
+      wrapPassword.classList.add('hide');
+    }
+  }
+
+  btnSwitch.addEventListener('click', () => {
+    if (authMode === 'signin' || authMode === 'reset') setMode('signup');
+    else setMode('signin');
+  });
+
+  linkForgot.addEventListener('click', () => setMode('reset'));
+
+  const btnTogglePwd = $('btn-toggle-pwd');
+  const inpPassword = $<HTMLInputElement>('l-password');
+  btnTogglePwd.addEventListener('click', () => {
+    if (inpPassword.type === 'password') {
+      inpPassword.type = 'text';
+      btnTogglePwd.textContent = 'Hide';
+    } else {
+      inpPassword.type = 'password';
+      btnTogglePwd.textContent = 'Show';
+    }
+  });
+
+  btnAction.addEventListener('click', async () => {
+    const email = $<HTMLInputElement>('l-email').value;
+    const password = inpPassword.value;
+    err.classList.add('hide');
+    msg.classList.add('hide');
+    
+    if (!email) {
+      err.textContent = 'Please enter an email';
+      err.classList.remove('hide');
+      return;
+    }
+    
+    if (authMode !== 'reset' && !password) {
+      err.textContent = 'Please enter a password';
+      err.classList.remove('hide');
+      return;
+    }
+
+    btnAction.disabled = true;
+    let error = null;
+
+    if (authMode === 'signin') {
+      const res = await supabase.auth.signInWithPassword({ email, password });
+      error = res.error;
+    } else if (authMode === 'signup') {
+      const res = await supabase.auth.signUp({ email, password });
+      error = res.error;
+      if (!error) {
+        msg.textContent = 'Check your email for the confirmation link!';
+        msg.classList.remove('hide');
+      }
+    } else if (authMode === 'reset') {
+      const res = await supabase.auth.resetPasswordForEmail(email);
+      error = res.error;
+      if (!error) {
+        msg.textContent = 'Password reset link sent to your email.';
+        msg.classList.remove('hide');
+      }
+    }
+
+    if (error) {
+      err.textContent = error.message;
+      err.classList.remove('hide');
+    }
+    btnAction.disabled = false;
+  });
+
+  $('btn-logout').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+  });
+}
+
+function updateAuthState(session: any) {
+  if (session) {
+    $('app-login').classList.add('hide');
+    $('app-content').classList.remove('hide');
+  } else {
+    $('app-login').classList.remove('hide');
+    $('app-content').classList.add('hide');
+  }
+}
+
+initAuth();
