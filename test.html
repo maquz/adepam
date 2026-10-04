@@ -10,12 +10,14 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <script type="module" crossorigin src="./assets/index-DfEp1kpI.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BJ7tvvTV.css">
   </head>
   <body>
     <div id="app">
       <div id="app-login" class="screen-only wrap" style="max-width: 420px; margin-top: 60px; padding-bottom: 40px;">
         <div class="card" style="position: relative;">
-          <img src="/logo.jpg" alt="Adepam Card" style="height: 90px; margin: 0 auto 16px; display: block; border-radius: 8px;" />
+          <img src="./logo.jpg" alt="Adepam Card" style="height: 90px; margin: 0 auto 16px; display: block; border-radius: 8px;" />
           
           <div style="text-align: center; margin-bottom: 24px;">
             <h2 id="auth-title" class="group-title" style="margin-bottom: 8px; font-size: 26px;">Tailor Login</h2>
@@ -107,14 +109,13 @@
         <header class="screen-only top">
           <div class="wrap top-in">
             <div style="display: flex; align-items: center; gap: 16px;">
-              <img src="/logo.jpg" alt="Adepam" style="height: 48px; border-radius: 4px;" />
+              <img src="./logo.jpg" alt="Adepam" style="height: 48px; border-radius: 4px;" />
               <div>
-                <h1 id="header-title" style="font-size: 20px; margin: 0;">Welcome back</h1>
+                <h1>Measurement Card</h1>
               </div>
             </div>
             <nav class="tabs" style="align-items: center;">
-              <button id="tab-dashboard" class="tab active" type="button">Dashboard</button>
-              <button id="tab-form" class="tab" type="button">New Client</button>
+              <button id="tab-form" class="tab active" type="button">New Client</button>
               <button id="tab-saved" class="tab" type="button">Saved Clients <span id="count" class="badge">0</span></button>
               <button id="tab-profile" class="tab" type="button">My Profile</button>
             </nav>
@@ -122,56 +123,7 @@
         </header>
 
       <main class="screen-only wrap">
-        <section id="view-dashboard">
-          <div class="card" style="background: var(--accent); color: white; border-radius: 16px; border: none; padding: 24px;">
-            <p style="opacity: 0.9; margin: 0 0 4px 0; font-size: 14px;">Total Clients</p>
-            <div id="dash-total-clients" style="font-size: 36px; font-weight: bold; margin-bottom: 24px;">0</div>
-            
-            <div style="display: flex; background: rgba(255,255,255,0.15); border-radius: 12px; padding: 12px; text-align: center;">
-              <div style="flex: 1;">
-                <div id="dash-total-meas" style="font-weight: bold; font-size: 20px;">0</div>
-                <div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">Measurements</div>
-              </div>
-              <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
-              <div style="flex: 1;">
-                <div style="font-weight: bold; font-size: 20px;">0</div>
-                <div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">Pending Orders</div>
-              </div>
-              <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
-              <div style="flex: 1;">
-                <div style="font-weight: bold; font-size: 20px;">Level 1</div>
-                <div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">Tailor Account</div>
-              </div>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 12px; margin: 20px 0;">
-            <div id="btn-dash-new" class="card" style="flex: 1; background: linear-gradient(135deg, var(--accent), #7d4f3b); color: white; border: none; cursor: pointer; padding: 20px;">
-              <h3 style="margin: 0; font-size: 18px;">➕ New Client</h3>
-              <p style="font-size: 13px; opacity: 0.9; margin: 6px 0 0 0;">Take new measurements</p>
-            </div>
-            <div id="btn-dash-saved" class="card" style="flex: 1; background: var(--card); border: 1px solid var(--line); cursor: pointer; padding: 20px;">
-              <h3 style="margin: 0; color: var(--ink); font-size: 18px;">📁 Records</h3>
-              <p style="font-size: 13px; color: var(--muted); margin: 6px 0 0 0;">View saved clients</p>
-            </div>
-          </div>
-          
-          <h2 class="group-title" style="margin-top: 24px;">Quick Actions</h2>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <div class="card" style="text-align: center; cursor: pointer; padding: 16px;">
-              <div style="font-size: 24px; margin-bottom: 8px;">✂️</div>
-              <div style="font-weight: 600; font-size: 14px;">Designs</div>
-              <div style="font-size: 12px; color: var(--muted);">Coming soon</div>
-            </div>
-            <div class="card" style="text-align: center; cursor: pointer; padding: 16px;">
-              <div style="font-size: 24px; margin-bottom: 8px;">📅</div>
-              <div style="font-weight: 600; font-size: 14px;">Appointments</div>
-              <div style="font-size: 12px; color: var(--muted);">Coming soon</div>
-            </div>
-          </div>
-        </section>
-
-        <section id="view-form" class="hide">
+        <section id="view-form">
           <div class="card">
             <h2 class="group-title">Customer</h2>
             <div class="grid-fields wide">
@@ -281,6 +233,5 @@
       <div id="print-sheet"></div>
       <div id="toast" class="toast" role="status"></div>
     </div>
-    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

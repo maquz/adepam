@@ -171,17 +171,19 @@ function fill(p: Profile | null): void {
   $('form-error').classList.add('hide');
 }
 
-function showView(v: 'form' | 'saved' | 'profile'): void {
+function showView(v: 'dashboard' | 'form' | 'saved' | 'profile'): void {
+  $('view-dashboard').classList.toggle('hide', v !== 'dashboard');
   $('view-form').classList.toggle('hide', v !== 'form');
   $('view-saved').classList.toggle('hide', v !== 'saved');
   $('view-my-profile').classList.toggle('hide', v !== 'profile');
   
+  $('tab-dashboard').classList.toggle('active', v === 'dashboard');
   $('tab-form').classList.toggle('active', v === 'form');
   $('tab-saved').classList.toggle('active', v === 'saved');
   $('tab-profile').classList.toggle('active', v === 'profile');
   
   if (v === 'saved') renderSaved();
-  if (v === 'profile') renderProfile();
+  if (v === 'profile' || v === 'dashboard') renderProfile(); // Re-use renderProfile to update stats
   window.scrollTo(0, 0);
 }
 
@@ -240,6 +242,14 @@ function renderProfile(): void {
   const shop = meta.shop_name || 'My Shop';
   const name = meta.full_name || 'Tailor Name';
   
+  $('header-title').textContent = `Welcome, ${shop}`;
+  
+  // Dashboard
+  $('dash-total-clients').textContent = String(profiles.length);
+  const totalMeas = profiles.reduce((acc, p) => acc + Object.keys(p.m).filter(k => p.m[k]).length, 0);
+  $('dash-total-meas').textContent = String(totalMeas);
+  
+  // Profile View
   $('p-shop-name').textContent = shop;
   $('p-full-name').textContent = name;
   $('p-avatar').textContent = shop.charAt(0).toUpperCase();
@@ -250,7 +260,6 @@ function renderProfile(): void {
   $<HTMLInputElement>('p-input-email').value = user.email || '';
   
   $('p-stat-clients').textContent = String(profiles.length);
-  const totalMeas = profiles.reduce((acc, p) => acc + Object.keys(p.m).filter(k => p.m[k]).length, 0);
   $('p-stat-meas').textContent = String(totalMeas);
 }
 
@@ -335,6 +344,10 @@ async function save(): Promise<void> {
 renderGroups();
 fill(null);
 $('count').textContent = String(profiles.length);
+
+$('tab-dashboard').addEventListener('click', () => showView('dashboard'));
+$('btn-dash-new').addEventListener('click', () => { fill(null); showView('form'); });
+$('btn-dash-saved').addEventListener('click', () => showView('saved'));
 
 $('tab-form').addEventListener('click', () => showView('form'));
 $('tab-saved').addEventListener('click', () => showView('saved'));
@@ -651,7 +664,7 @@ function updateAuthState(session: any) {
   if (session) {
     $('app-login').classList.add('hide');
     $('app-content').classList.remove('hide');
-    fetchProfiles();
+    fetchProfiles().then(() => showView('dashboard'));
   } else {
     $('app-login').classList.remove('hide');
     $('app-content').classList.add('hide');
