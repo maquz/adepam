@@ -171,11 +171,13 @@ function fill(p: Profile | null): void {
   $('form-error').classList.add('hide');
 }
 
-function showView(v: 'dashboard' | 'form' | 'saved' | 'profile'): void {
+function showView(v: 'dashboard' | 'form' | 'saved' | 'profile' | 'designs' | 'appointments'): void {
   $('view-dashboard').classList.toggle('hide', v !== 'dashboard');
   $('view-form').classList.toggle('hide', v !== 'form');
   $('view-saved').classList.toggle('hide', v !== 'saved');
   $('view-my-profile').classList.toggle('hide', v !== 'profile');
+  $('view-designs').classList.toggle('hide', v !== 'designs');
+  $('view-appointments').classList.toggle('hide', v !== 'appointments');
   
   $('tab-dashboard').classList.toggle('active', v === 'dashboard');
   $('tab-form').classList.toggle('active', v === 'form');
@@ -348,6 +350,10 @@ $('count').textContent = String(profiles.length);
 $('tab-dashboard').addEventListener('click', () => showView('dashboard'));
 $('btn-dash-new').addEventListener('click', () => { fill(null); showView('form'); });
 $('btn-dash-saved').addEventListener('click', () => showView('saved'));
+$('btn-dash-designs').addEventListener('click', () => showView('designs'));
+$('btn-dash-appointments').addEventListener('click', () => showView('appointments'));
+$('btn-back-designs').addEventListener('click', () => showView('dashboard'));
+$('btn-back-appointments').addEventListener('click', () => showView('dashboard'));
 
 $('tab-form').addEventListener('click', () => showView('form'));
 $('tab-saved').addEventListener('click', () => showView('saved'));

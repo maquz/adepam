@@ -137,11 +137,6 @@
                 <div style="font-weight: bold; font-size: 20px;">0</div>
                 <div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">Pending Orders</div>
               </div>
-              <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
-              <div style="flex: 1;">
-                <div style="font-weight: bold; font-size: 20px;">Level 1</div>
-                <div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">Tailor Account</div>
-              </div>
             </div>
           </div>
 
@@ -158,16 +153,36 @@
           
           <h2 class="group-title" style="margin-top: 24px;">Quick Actions</h2>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <div class="card" style="text-align: center; cursor: pointer; padding: 16px;">
+            <div id="btn-dash-designs" class="card" style="text-align: center; cursor: pointer; padding: 16px;">
               <div style="font-size: 24px; margin-bottom: 8px;">✂️</div>
-              <div style="font-weight: 600; font-size: 14px;">Designs</div>
-              <div style="font-size: 12px; color: var(--muted);">Coming soon</div>
+              <div style="font-weight: 600; font-size: 14px;">Style Designs</div>
+              <div style="font-size: 12px; color: var(--muted);">Manage catalog</div>
             </div>
-            <div class="card" style="text-align: center; cursor: pointer; padding: 16px;">
+            <div id="btn-dash-appointments" class="card" style="text-align: center; cursor: pointer; padding: 16px;">
               <div style="font-size: 24px; margin-bottom: 8px;">📅</div>
               <div style="font-weight: 600; font-size: 14px;">Appointments</div>
-              <div style="font-size: 12px; color: var(--muted);">Coming soon</div>
+              <div style="font-size: 12px; color: var(--muted);">View schedule</div>
             </div>
+          </div>
+        </section>
+
+        <!-- Placeholder for Designs View -->
+        <section id="view-designs" class="hide">
+          <div class="card" style="text-align: center; padding: 48px 16px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">👗</div>
+            <h2 style="margin: 0 0 8px;">Style Designs</h2>
+            <p style="color: var(--muted); margin-bottom: 24px;">Upload and organize your design catalog for customers to choose from.</p>
+            <button id="btn-back-designs" class="btn ghost" type="button">&larr; Back to Dashboard</button>
+          </div>
+        </section>
+
+        <!-- Placeholder for Appointments View -->
+        <section id="view-appointments" class="hide">
+          <div class="card" style="text-align: center; padding: 48px 16px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">📅</div>
+            <h2 style="margin: 0 0 8px;">Appointments</h2>
+            <p style="color: var(--muted); margin-bottom: 24px;">Schedule and track upcoming fitting sessions.</p>
+            <button id="btn-back-appointments" class="btn ghost" type="button">&larr; Back to Dashboard</button>
           </div>
         </section>
 
