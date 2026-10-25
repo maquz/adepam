@@ -1,0 +1,17 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Do not rewrite api.php requests
+  RewriteRule ^api\.php$ - [L]
+
+  # If requested file or directory exists, serve it directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Otherwise route to index.html
+  RewriteRule ^ index.html [L]
+</IfModule>

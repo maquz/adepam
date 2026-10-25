@@ -1,5 +1,5 @@
 import './styles.css';
-import { supabase } from './supabase';
+import { api, getStoredUser, User } from './api';
 
 type Unit = 'in' | 'cm';
 
@@ -61,17 +61,20 @@ let profiles: Profile[] = [];
 let editingId: string | null = null;
 let unit: Unit = 'in';
 let toastTimer = 0;
-let currentSession: any = null;
+let currentUser: User | null = null;
 
 async function fetchProfiles() {
-  if (!currentSession) return;
-  const { data, error } = await supabase.from('customers').select('*').eq('tailor_id', currentSession.user.id);
-  if (error) {
+  if (!currentUser) return;
+  try {
+    const data = await api.getCustomers();
+    profiles = data.map(c => ({
+      ...c,
+      charge: String(c.charge || '')
+    }));
+    renderSaved();
+  } catch (error) {
     console.error('Error fetching profiles:', error);
-    return;
   }
-  profiles = data || [];
-  renderSaved();
 }
 
 function esc(s: string): string {
@@ -237,12 +240,9 @@ function renderSaved(): void {
 }
 
 function renderProfile(): void {
-  if (!currentSession) return;
-  const user = currentSession.user;
-  const meta = user.user_metadata || {};
-  
-  const shop = meta.shop_name || 'My Shop';
-  const name = meta.full_name || 'Tailor Name';
+  if (!currentUser) return;
+  const shop = currentUser.shop_name || 'My Shop';
+  const name = currentUser.full_name || 'Tailor Name';
   
   $('header-title').textContent = `Welcome, ${shop}`;
   
@@ -258,8 +258,8 @@ function renderProfile(): void {
   
   $<HTMLInputElement>('p-input-shop').value = shop;
   $<HTMLInputElement>('p-input-name').value = name;
-  $<HTMLInputElement>('p-input-phone').value = meta.phone || '';
-  $<HTMLInputElement>('p-input-email').value = user.email || '';
+  $<HTMLInputElement>('p-input-phone').value = currentUser.phone || '';
+  $<HTMLInputElement>('p-input-email').value = currentUser.email || '';
   
   $('p-stat-clients').textContent = String(profiles.length);
   $('p-stat-meas').textContent = String(totalMeas);
@@ -311,7 +311,7 @@ async function save(): Promise<void> {
   }
   err.classList.add('hide');
   
-  if (!currentSession) {
+  if (!currentUser) {
     err.textContent = 'You must be logged in to save.';
     err.classList.remove('hide');
     return;
@@ -320,19 +320,21 @@ async function save(): Promise<void> {
   $<HTMLButtonElement>('btn-save').disabled = true;
   $('btn-save').textContent = 'Saving...';
 
-  const { error } = await supabase.from('customers').upsert({
-    ...p,
-    tailor_id: currentSession.user.id
-  });
-
-  $<HTMLButtonElement>('btn-save').disabled = false;
-  $('btn-save').textContent = editingId ? 'Update Profile' : 'Save Profile';
-
-  if (error) {
+  try {
+    await api.saveCustomer({
+      ...p,
+      charge: parseFloat(p.charge) || 0,
+    });
+  } catch (error: any) {
+    $<HTMLButtonElement>('btn-save').disabled = false;
+    $('btn-save').textContent = editingId ? 'Update Profile' : 'Save Profile';
     err.textContent = 'Could not save to database: ' + error.message;
     err.classList.remove('hide');
     return;
   }
+
+  $<HTMLButtonElement>('btn-save').disabled = false;
+  $('btn-save').textContent = editingId ? 'Update Profile' : 'Save Profile';
 
   const idx = profiles.findIndex(x => x.id === p.id);
   if (idx >= 0) profiles[idx] = p;
@@ -374,19 +376,16 @@ $('btn-update-profile').addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = 'Updating...';
   
-  const { data, error } = await supabase.auth.updateUser({
-    data: { shop_name, full_name, phone }
-  });
-  
-  btn.disabled = false;
-  btn.textContent = 'Update Profile';
-  
-  if (error) {
-    toast('Error: ' + error.message);
-  } else {
-    currentSession.user = data.user;
+  try {
+    const user = await api.updateProfile({ shop_name, full_name, phone });
+    currentUser = user;
     renderProfile();
     toast('Profile updated');
+  } catch (error: any) {
+    toast('Error: ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Update Profile';
   }
 });
 
@@ -407,17 +406,16 @@ $('btn-update-password').addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = 'Updating...';
   
-  const { error } = await supabase.auth.updateUser({ password: pwd });
-  
-  btn.disabled = false;
-  btn.textContent = 'Update Password';
-  
-  if (error) {
-    toast('Error: ' + error.message);
-  } else {
+  try {
+    await api.updatePassword(pwd);
     toast('Password updated');
     $<HTMLInputElement>('p-input-pwd').value = '';
     $<HTMLInputElement>('p-input-confirm').value = '';
+  } catch (error: any) {
+    toast('Error: ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Update Password';
   }
 });
 
@@ -436,25 +434,30 @@ $('saved-list').addEventListener('click', async e => {
   } else if (btn.dataset.act === 'delete') {
     if (window.confirm('Delete ' + p.name + '? This cannot be undone.')) {
       btn.disabled = true;
-      const { error } = await supabase.from('customers').delete().eq('id', p.id);
-      if (error) {
+      try {
+        await api.deleteCustomer(p.id);
+        profiles = profiles.filter(x => x.id !== p.id);
+        renderSaved();
+        toast('Profile deleted');
+      } catch (error: any) {
         toast('Could not delete: ' + error.message);
         btn.disabled = false;
-        return;
       }
-      profiles = profiles.filter(x => x.id !== p.id);
-      renderSaved();
-      toast('Profile deleted');
     }
   }
 });
 
 async function initAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
-  updateAuthState(session);
-
-  supabase.auth.onAuthStateChange((_event, session) => {
-    updateAuthState(session);
+  const stored = getStoredUser();
+  if (stored) {
+    updateAuthState(stored);
+  }
+  api.getMe().then(user => {
+    if (user) {
+      updateAuthState(user);
+    } else if (stored) {
+      updateAuthState(null);
+    }
   });
 
   let authMode: 'signin' | 'signup1' | 'signup2' | 'reset' = 'signin';
@@ -601,12 +604,15 @@ async function initAuth() {
       return;
     }
     btnSignin.disabled = true;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+    try {
+      const res = await api.login({ email, password });
+      updateAuthState(res.user);
+    } catch (error: any) {
       err.textContent = error.message;
       err.classList.remove('hide');
+    } finally {
+      btnSignin.disabled = false;
     }
-    btnSignin.disabled = false;
   });
 
   btnSignup.addEventListener('click', async () => {
@@ -624,50 +630,31 @@ async function initAuth() {
     const full_name = $<HTMLInputElement>('l-name').value;
     const phone = $<HTMLInputElement>('l-phone').value;
     
-    const { error } = await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: { data: { shop_name, full_name, phone } }
-    });
-    if (error) {
+    try {
+      const res = await api.signup({ shop_name, full_name, email, phone, password });
+      updateAuthState(res.user);
+    } catch (error: any) {
       err.textContent = error.message;
       err.classList.remove('hide');
-    } else {
-      msg.textContent = 'Check your email for the confirmation link!';
-      msg.classList.remove('hide');
-      setMode('signin');
+    } finally {
+      btnSignup.disabled = false;
     }
-    btnSignup.disabled = false;
   });
 
-  btnReset.addEventListener('click', async () => {
-    const email = $<HTMLInputElement>('l-email').value;
-    err.classList.add('hide');
-    if (!email) {
-      err.textContent = 'Please enter an email';
-      err.classList.remove('hide');
-      return;
-    }
-    btnReset.disabled = true;
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) {
-      err.textContent = error.message;
-      err.classList.remove('hide');
-    } else {
-      msg.textContent = 'Password reset link sent to your email.';
-      msg.classList.remove('hide');
-    }
-    btnReset.disabled = false;
+  btnReset.addEventListener('click', () => {
+    msg.textContent = 'Please update your password in Profile Settings once logged in, or contact administrator.';
+    msg.classList.remove('hide');
   });
 
-  $('btn-logout').addEventListener('click', async () => {
-    await supabase.auth.signOut();
+  $('btn-logout').addEventListener('click', () => {
+    api.logout();
+    updateAuthState(null);
   });
 }
 
-function updateAuthState(session: any) {
-  currentSession = session;
-  if (session) {
+function updateAuthState(user: User | null) {
+  currentUser = user;
+  if (user) {
     $('app-login').classList.add('hide');
     $('app-content').classList.remove('hide');
     fetchProfiles().then(() => showView('dashboard'));
