@@ -24,18 +24,35 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
 
-    // Ensure designs table exists
+    // Ensure designs table exists with new columns
     $pdo->exec("CREATE TABLE IF NOT EXISTS `designs` (
       `id` INT AUTO_INCREMENT PRIMARY KEY,
       `tailor_id` INT NOT NULL,
       `title` VARCHAR(150) NOT NULL,
       `category` VARCHAR(100) DEFAULT 'General',
+      `gender` VARCHAR(20) DEFAULT 'Unisex',
+      `target_group` VARCHAR(20) DEFAULT 'Adults',
       `description` TEXT DEFAULT NULL,
       `price_estimate` DECIMAL(10,2) DEFAULT NULL,
       `image_url` VARCHAR(255) NOT NULL,
+      `is_global` TINYINT(1) DEFAULT 0,
       `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT `fk_designs_tailor` FOREIGN KEY (`tailor_id`) REFERENCES `tailors` (`id`) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    // Add new columns if missing
+    try { $pdo->exec("ALTER TABLE `designs` ADD COLUMN `gender` VARCHAR(20) DEFAULT 'Unisex' AFTER `category`"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE `designs` ADD COLUMN `target_group` VARCHAR(20) DEFAULT 'Adults' AFTER `gender`"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE `designs` ADD COLUMN `is_global` TINYINT(1) DEFAULT 0 AFTER `price_estimate`"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE `tailors` ADD COLUMN `is_admin` TINYINT(1) DEFAULT 0 AFTER `phone`"); } catch (Exception $e) {}
+
+    // Ensure at least one admin exists (make the first tailor admin)
+    try {
+        $checkAdmin = $pdo->query("SELECT COUNT(*) FROM `tailors` WHERE `is_admin` = 1")->fetchColumn();
+        if ((int)$checkAdmin === 0) {
+            $pdo->exec("UPDATE `tailors` SET `is_admin` = 1 ORDER BY id ASC LIMIT 1");
+        }
+    } catch (Exception $e) {}
 
 } catch (PDOException $e) {
     http_response_code(500);
@@ -83,9 +100,14 @@ function getAuthUser($pdo, $secret) {
     if (!$payload || !isset($payload['uid']) || $payload['exp'] < time()) {
         return null;
     }
-    $stmt = $pdo->prepare('SELECT id, shop_name, full_name, email, phone FROM tailors WHERE id = ?');
+    $stmt = $pdo->prepare('SELECT id, shop_name, full_name, email, phone, COALESCE(is_admin, 0) AS is_admin FROM tailors WHERE id = ?');
     $stmt->execute([$payload['uid']]);
-    return $stmt->fetch() ?: null;
+    $u = $stmt->fetch();
+    if ($u) {
+        $u['is_admin'] = (int)$u['is_admin'] === 1;
+        return $u;
+    }
+    return null;
 }
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -116,13 +138,17 @@ switch ($action) {
             exit;
         }
 
+        // Check if this is the first user
+        $totalUsers = (int)$pdo->query("SELECT COUNT(*) FROM tailors")->fetchColumn();
+        $isAdmin = ($totalUsers === 0) ? 1 : 0;
+
         $hash = password_hash($password, PASSWORD_DEFAULT);
-        $insert = $pdo->prepare('INSERT INTO tailors (shop_name, full_name, email, phone, password_hash) VALUES (?, ?, ?, ?, ?)');
-        $insert->execute([$shop, $name, $email, $phone, $hash]);
+        $insert = $pdo->prepare('INSERT INTO tailors (shop_name, full_name, email, phone, password_hash, is_admin) VALUES (?, ?, ?, ?, ?, ?)');
+        $insert->execute([$shop, $name, $email, $phone, $hash, $isAdmin]);
         $userId = $pdo->lastInsertId();
 
         $token = generateToken($userId, $email, $jwt_secret);
-        $user = ['id' => $userId, 'shop_name' => $shop, 'full_name' => $name, 'email' => $email, 'phone' => $phone];
+        $user = ['id' => (int)$userId, 'shop_name' => $shop, 'full_name' => $name, 'email' => $email, 'phone' => $phone, 'is_admin' => ($isAdmin === 1)];
         echo json_encode(['success' => true, 'token' => $token, 'user' => $user]);
         break;
 
@@ -148,11 +174,12 @@ switch ($action) {
 
         $token = generateToken($tailor['id'], $tailor['email'], $jwt_secret);
         $user = [
-            'id' => $tailor['id'],
+            'id' => (int)$tailor['id'],
             'shop_name' => $tailor['shop_name'],
             'full_name' => $tailor['full_name'],
             'email' => $tailor['email'],
-            'phone' => $tailor['phone']
+            'phone' => $tailor['phone'],
+            'is_admin' => ((int)($tailor['is_admin'] ?? 0) === 1)
         ];
         echo json_encode(['success' => true, 'token' => $token, 'user' => $user]);
         break;
@@ -285,11 +312,17 @@ switch ($action) {
             echo json_encode(['error' => 'Unauthorized']);
             exit;
         }
-        $stmt = $pdo->prepare('SELECT id, title, category, description, price_estimate, image_url, created_at FROM designs WHERE tailor_id = ? ORDER BY created_at DESC');
+        // Return both custom tailor designs AND global preloaded designs
+        $stmt = $pdo->prepare('SELECT id, tailor_id, title, category, gender, target_group, description, price_estimate, image_url, is_global, created_at FROM designs WHERE tailor_id = ? OR is_global = 1 ORDER BY is_global DESC, created_at DESC');
         $stmt->execute([$user['id']]);
         $rows = $stmt->fetchAll();
         foreach ($rows as &$r) {
+            $r['id'] = (int)$r['id'];
             $r['price_estimate'] = $r['price_estimate'] !== null ? (float)$r['price_estimate'] : null;
+            $r['is_global'] = (int)$r['is_global'] === 1;
+            $r['is_owner'] = ((int)$r['tailor_id'] === (int)$user['id']) || $user['is_admin'];
+            $r['gender'] = $r['gender'] ?: 'Unisex';
+            $r['target_group'] = $r['target_group'] ?: 'Adults';
         }
         echo json_encode(['designs' => $rows]);
         break;
@@ -303,8 +336,11 @@ switch ($action) {
         }
         $title = trim($input['title'] ?? '');
         $category = trim($input['category'] ?? 'General');
+        $gender = trim($input['gender'] ?? 'Unisex');
+        $target_group = trim($input['target_group'] ?? 'Adults');
         $description = trim($input['description'] ?? '');
         $price = !empty($input['price_estimate']) ? floatval($input['price_estimate']) : null;
+        $is_global = (!empty($input['is_global']) && !empty($user['is_admin'])) ? 1 : 0;
         $imageUrl = '';
 
         $uploadDir = __DIR__ . '/uploads/designs/';
@@ -352,19 +388,24 @@ switch ($action) {
             exit;
         }
 
-        $stmt = $pdo->prepare('INSERT INTO designs (tailor_id, title, category, description, price_estimate, image_url) VALUES (?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$user['id'], $title, $category, $description, $price, $imageUrl]);
+        $stmt = $pdo->prepare('INSERT INTO designs (tailor_id, title, category, gender, target_group, description, price_estimate, image_url, is_global) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$user['id'], $title, $category, $gender, $target_group, $description, $price, $imageUrl, $is_global]);
         $designId = $pdo->lastInsertId();
 
         echo json_encode([
             'success' => true,
             'design' => [
                 'id' => (int)$designId,
+                'tailor_id' => (int)$user['id'],
                 'title' => $title,
                 'category' => $category,
+                'gender' => $gender,
+                'target_group' => $target_group,
                 'description' => $description,
                 'price_estimate' => $price,
                 'image_url' => $imageUrl,
+                'is_global' => ($is_global === 1),
+                'is_owner' => true,
                 'created_at' => date('Y-m-d H:i:s')
             ]
         ]);
@@ -383,20 +424,77 @@ switch ($action) {
             echo json_encode(['error' => 'Design ID required']);
             exit;
         }
-        $stmt = $pdo->prepare('SELECT image_url FROM designs WHERE id = ? AND tailor_id = ?');
-        $stmt->execute([$id, $user['id']]);
+        
+        // Admins can delete any design; regular tailors can only delete their own
+        if ($user['is_admin']) {
+            $stmt = $pdo->prepare('SELECT image_url FROM designs WHERE id = ?');
+            $stmt->execute([$id]);
+        } else {
+            $stmt = $pdo->prepare('SELECT image_url FROM designs WHERE id = ? AND tailor_id = ?');
+            $stmt->execute([$id, $user['id']]);
+        }
         $design = $stmt->fetch();
         if ($design) {
             if ($design['image_url'] && file_exists(__DIR__ . '/' . $design['image_url'])) {
                 @unlink(__DIR__ . '/' . $design['image_url']);
             }
-            $del = $pdo->prepare('DELETE FROM designs WHERE id = ? AND tailor_id = ?');
-            $del->execute([$id, $user['id']]);
+            $del = $pdo->prepare('DELETE FROM designs WHERE id = ?');
+            $del->execute([$id]);
         }
         echo json_encode(['success' => true]);
         break;
 
+    case 'admin_stats':
+        $user = getAuthUser($pdo, $jwt_secret);
+        if (!$user || empty($user['is_admin'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Admin access required.']);
+            exit;
+        }
+
+        $totalTailors = (int)$pdo->query('SELECT COUNT(*) FROM tailors')->fetchColumn();
+        $totalCustomers = (int)$pdo->query('SELECT COUNT(*) FROM customers')->fetchColumn();
+        $totalDesigns = (int)$pdo->query('SELECT COUNT(*) FROM designs')->fetchColumn();
+        $globalDesigns = (int)$pdo->query('SELECT COUNT(*) FROM designs WHERE is_global = 1')->fetchColumn();
+
+        echo json_encode([
+            'stats' => [
+                'total_tailors' => $totalTailors,
+                'total_customers' => $totalCustomers,
+                'total_designs' => $totalDesigns,
+                'global_designs' => $globalDesigns
+            ]
+        ]);
+        break;
+
+    case 'admin_tailors':
+        $user = getAuthUser($pdo, $jwt_secret);
+        if (!$user || empty($user['is_admin'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Admin access required.']);
+            exit;
+        }
+
+        $stmt = $pdo->query('
+            SELECT t.id, t.shop_name, t.full_name, t.email, t.phone, t.is_admin, t.created_at, 
+                   COUNT(c.id) AS client_count,
+                   (SELECT COUNT(*) FROM designs d WHERE d.tailor_id = t.id AND d.is_global = 0) AS custom_designs
+            FROM tailors t
+            LEFT JOIN customers c ON c.tailor_id = t.id
+            GROUP BY t.id
+            ORDER BY t.created_at DESC
+        ');
+        $tailors = $stmt->fetchAll();
+        foreach ($tailors as &$t) {
+            $t['id'] = (int)$t['id'];
+            $t['is_admin'] = (int)$t['is_admin'] === 1;
+            $t['client_count'] = (int)$t['client_count'];
+            $t['custom_designs'] = (int)$t['custom_designs'];
+        }
+        echo json_encode(['tailors' => $tailors]);
+        break;
+
     default:
-        echo json_encode(['status' => 'Adepam API Online', 'version' => '2.0.0']);
+        echo json_encode(['status' => 'Adepam API Online', 'version' => '2.1.0']);
         break;
 }

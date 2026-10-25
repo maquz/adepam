@@ -117,6 +117,7 @@
               <button id="tab-form" class="tab" type="button">New Client</button>
               <button id="tab-saved" class="tab" type="button">Saved Clients <span id="count" class="badge">0</span></button>
               <button id="tab-profile" class="tab" type="button">My Profile</button>
+              <button id="tab-admin" class="tab hide" type="button" style="color: var(--accent); font-weight: 600;">🛡️ Admin</button>
             </nav>
           </div>
         </header>
@@ -168,7 +169,7 @@
 
         <!-- Style Designs View -->
         <section id="view-designs" class="hide">
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
             <div style="display: flex; align-items: center; gap: 12px;">
               <button id="btn-back-designs" class="btn ghost sm" type="button" style="padding: 0 10px;">&larr; Dashboard</button>
               <h2 style="font-size: 26px; margin: 0;">Style Designs <span id="design-count-badge" class="badge">0</span></h2>
@@ -181,7 +182,7 @@
           <!-- Upload Design Panel -->
           <div id="panel-upload-design" class="card hide" style="border: 2px dashed var(--accent); background: var(--accent-soft); padding: 20px; margin-bottom: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-              <h3 style="font-size: 20px; color: var(--accent);">Add Design to Catalog</h3>
+              <h3 id="upload-panel-title" style="font-size: 20px; color: var(--accent);">Add Design to Catalog</h3>
               <button id="btn-close-upload-design" type="button" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted);">&times;</button>
             </div>
             
@@ -207,7 +208,7 @@
                   <input id="input-design-title" type="text" placeholder="e.g. Modern Kaftan, Kaba &amp; Slit" required />
                 </label>
                 <label class="field">
-                  <span>Category</span>
+                  <span>Clothing Category</span>
                   <select id="input-design-category" style="width: 100%; font: 16px 'Inter', sans-serif; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; min-height: 46px; outline: none;">
                     <option value="Kaba &amp; Slit">Kaba &amp; Slit</option>
                     <option value="Kaftan / Senator">Kaftan / Senator</option>
@@ -218,6 +219,25 @@
                     <option value="Traditional / Kente">Traditional / Kente</option>
                     <option value="Casual Wear">Casual Wear</option>
                     <option value="Other">Other</option>
+                  </select>
+                </label>
+              </div>
+
+              <!-- Gender first, then Age Group -->
+              <div class="grid-fields wide">
+                <label class="field">
+                  <span>Gender *</span>
+                  <select id="input-design-gender" style="width: 100%; font: 16px 'Inter', sans-serif; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; min-height: 46px; outline: none;">
+                    <option value="Men">👔 Men</option>
+                    <option value="Women">👗 Women</option>
+                    <option value="Unisex">🚻 Unisex</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Age Group *</span>
+                  <select id="input-design-age" style="width: 100%; font: 16px 'Inter', sans-serif; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; min-height: 46px; outline: none;">
+                    <option value="Adults">🧑 Adults</option>
+                    <option value="Children">🧒 Children</option>
                   </select>
                 </label>
               </div>
@@ -233,6 +253,13 @@
                 </label>
               </div>
 
+              <div id="wrap-design-global" class="hide" style="background: rgba(138,90,68,0.1); border: 1px solid var(--line); padding: 12px; border-radius: 10px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; font-weight: 600; color: var(--accent);">
+                  <input id="input-design-global" type="checkbox" style="width: 18px; height: 18px; min-height: 0;" />
+                  <span>⭐ Preload as Platform Style (Instantly visible to all registered tailors)</span>
+                </label>
+              </div>
+
               <p id="error-upload-design" class="error hide" role="alert"></p>
 
               <div style="display: flex; gap: 10px; margin-top: 6px;">
@@ -242,20 +269,113 @@
             </form>
           </div>
 
-          <!-- Category filter buttons -->
-          <div id="design-category-filters" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 16px; scrollbar-width: none;">
-            <button class="tab active sm design-filter-btn" data-category="All" type="button">All Designs</button>
-            <button class="tab sm design-filter-btn" data-category="Kaba &amp; Slit" type="button">Kaba &amp; Slit</button>
-            <button class="tab sm design-filter-btn" data-category="Kaftan / Senator" type="button">Kaftan</button>
-            <button class="tab sm design-filter-btn" data-category="Agbada" type="button">Agbada</button>
-            <button class="tab sm design-filter-btn" data-category="Suit / Blazer" type="button">Suit</button>
-            <button class="tab sm design-filter-btn" data-category="Dress / Gown" type="button">Dress</button>
-            <button class="tab sm design-filter-btn" data-category="Traditional / Kente" type="button">Traditional</button>
+          <!-- Search Box -->
+          <input id="search-designs" class="search" type="search" placeholder="🔍 Search style designs by name or keyword..." autocomplete="off" />
+
+          <!-- Multi-tier Taxonomy Filter (Gender first, then Age Group, then Categories) -->
+          <div class="card" style="padding: 14px 16px; margin-bottom: 18px; background: #fff;">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- 1. Gender Selection -->
+              <div>
+                <span style="font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 6px;">Step 1: Gender</span>
+                <div id="filter-gender-group" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button class="tab sm active filter-gender-btn" data-gender="All" type="button">All Genders</button>
+                  <button class="tab sm filter-gender-btn" data-gender="Men" type="button">👔 Men</button>
+                  <button class="tab sm filter-gender-btn" data-gender="Women" type="button">👗 Women</button>
+                  <button class="tab sm filter-gender-btn" data-gender="Unisex" type="button">🚻 Unisex</button>
+                </div>
+              </div>
+
+              <!-- 2. Age Group Selection -->
+              <div style="border-top: 1px solid var(--line); padding-top: 10px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 6px;">Step 2: Age Group</span>
+                <div id="filter-age-group" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button class="tab sm active filter-age-btn" data-age="All" type="button">All Ages</button>
+                  <button class="tab sm filter-age-btn" data-age="Adults" type="button">🧑 Adults</button>
+                  <button class="tab sm filter-age-btn" data-age="Children" type="button">🧒 Children</button>
+                </div>
+              </div>
+
+              <!-- 3. Category Filter -->
+              <div style="border-top: 1px solid var(--line); padding-top: 10px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 6px;">Clothing Category</span>
+                <div id="design-category-filters" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;">
+                  <button class="tab active sm design-filter-btn" data-category="All" type="button">All Categories</button>
+                  <button class="tab sm design-filter-btn" data-category="Kaba &amp; Slit" type="button">Kaba &amp; Slit</button>
+                  <button class="tab sm design-filter-btn" data-category="Kaftan / Senator" type="button">Kaftan</button>
+                  <button class="tab sm design-filter-btn" data-category="Agbada" type="button">Agbada</button>
+                  <button class="tab sm design-filter-btn" data-category="Suit / Blazer" type="button">Suit</button>
+                  <button class="tab sm design-filter-btn" data-category="Dress / Gown" type="button">Dress</button>
+                  <button class="tab sm design-filter-btn" data-category="Traditional / Kente" type="button">Traditional</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Designs Grid -->
           <div id="designs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px;"></div>
-          <p id="designs-empty" class="empty hide">No style designs added yet. Upload your first design above!</p>
+          <p id="designs-empty" class="empty hide">No style designs found matching your filter criteria.</p>
+        </section>
+
+        <!-- Admin Dashboard Section -->
+        <section id="view-admin" class="hide">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+            <div>
+              <h2 style="font-size: 26px; margin: 0;">🛡️ Admin Dashboard</h2>
+              <p style="color: var(--muted); margin: 4px 0 0; font-size: 14px;">Monitor all registered tailoring shops, users, and platform-wide styles.</p>
+            </div>
+            <button id="btn-admin-preload-style" class="btn primary sm" type="button" style="display: flex; align-items: center; gap: 6px;">
+              <span>⭐</span> Preload Platform Style
+            </button>
+          </div>
+
+          <!-- Admin KPI Summary -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px;">
+            <div class="card" style="margin: 0; background: var(--card); border: 1px solid var(--line);">
+              <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">Registered Shops</div>
+              <div id="admin-stat-tailors" style="font-size: 28px; font-weight: bold; color: var(--accent);">0</div>
+            </div>
+            <div class="card" style="margin: 0; background: var(--card); border: 1px solid var(--line);">
+              <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">Total Clients Logged</div>
+              <div id="admin-stat-clients" style="font-size: 28px; font-weight: bold; color: var(--ink);">0</div>
+            </div>
+            <div class="card" style="margin: 0; background: var(--card); border: 1px solid var(--line);">
+              <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">Preloaded Styles</div>
+              <div id="admin-stat-global" style="font-size: 28px; font-weight: bold; color: var(--accent);">0</div>
+            </div>
+            <div class="card" style="margin: 0; background: var(--card); border: 1px solid var(--line);">
+              <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">Total Catalog Styles</div>
+              <div id="admin-stat-designs" style="font-size: 28px; font-weight: bold; color: var(--ink);">0</div>
+            </div>
+          </div>
+
+          <!-- Registered Tailors Table -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+              <h3 style="font-size: 20px; color: var(--accent);">Registered Shops &amp; Users</h3>
+              <input id="search-admin-tailors" type="search" placeholder="Search shops..." style="max-width: 260px; min-height: 38px; padding: 6px 12px; font-size: 14px;" />
+            </div>
+
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                <thead>
+                  <tr style="border-bottom: 2px solid var(--line); color: var(--muted); font-size: 12px; text-transform: uppercase;">
+                    <th style="padding: 10px 12px;">Shop / Tailor</th>
+                    <th style="padding: 10px 12px;">Email &amp; Phone</th>
+                    <th style="padding: 10px 12px; text-align: center;">Clients</th>
+                    <th style="padding: 10px 12px; text-align: center;">Custom Styles</th>
+                    <th style="padding: 10px 12px;">Role</th>
+                    <th style="padding: 10px 12px;">Joined</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-tailors-tbody">
+                  <tr>
+                    <td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">Loading users...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <!-- Lightbox Modal for Full View -->

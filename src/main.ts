@@ -1,5 +1,5 @@
 import './styles.css';
-import { api, getStoredUser, User, Design } from './api';
+import { api, getStoredUser, User, Design, AdminTailor, AdminStats } from './api';
 
 type Unit = 'in' | 'cm';
 
@@ -175,7 +175,13 @@ function fill(p: Profile | null): void {
 }
 
 let designs: Design[] = [];
+let activeGender = 'All';
+let activeAge = 'All';
 let activeCategory = 'All';
+let designSearchQuery = '';
+
+let adminTailors: AdminTailor[] = [];
+let adminSearchQuery = '';
 
 async function fetchDesigns() {
   if (!currentUser) return;
@@ -189,15 +195,26 @@ async function fetchDesigns() {
 
 function renderDesigns() {
   const badge = $('design-count-badge');
-  if (badge) badge.textContent = String(designs.length);
   const container = $('designs-grid');
   const empty = $('designs-empty');
   if (!container || !empty) return;
   
-  const filtered = activeCategory === 'All' 
-    ? designs 
-    : designs.filter(d => d.category === activeCategory);
+  const filtered = designs.filter(d => {
+    if (activeGender !== 'All' && d.gender !== activeGender) return false;
+    if (activeAge !== 'All' && d.target_group !== activeAge) return false;
+    if (activeCategory !== 'All' && d.category !== activeCategory) return false;
+    if (designSearchQuery) {
+      const q = designSearchQuery.toLowerCase();
+      const match = d.title.toLowerCase().includes(q) || 
+                    (d.description && d.description.toLowerCase().includes(q)) ||
+                    d.category.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
+  });
   
+  if (badge) badge.textContent = String(filtered.length);
+
   if (filtered.length === 0) {
     container.innerHTML = '';
     empty.classList.remove('hide');
@@ -206,10 +223,16 @@ function renderDesigns() {
   
   empty.classList.add('hide');
   container.innerHTML = filtered.map(d => `
-    <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+    <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); position: relative;">
       <div style="position: relative; cursor: pointer; aspect-ratio: 1/1; overflow: hidden; background: #eee;" data-act="lightbox" data-id="${d.id}">
         <img src="${esc(d.image_url)}" alt="${esc(d.title)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" loading="lazy" />
-        <span style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.65); color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 500; backdrop-filter: blur(4px);">${esc(d.category)}</span>
+        <div style="position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+          <span style="background: rgba(0,0,0,0.7); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 500; backdrop-filter: blur(4px);">
+            ${d.gender === 'Men' ? '👔 Men' : d.gender === 'Women' ? '👗 Women' : '🚻 Unisex'} • ${d.target_group === 'Children' ? '🧒 Kids' : '🧑 Adults'}
+          </span>
+          <span style="background: var(--accent); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500;">${esc(d.category)}</span>
+        </div>
+        ${d.is_global ? '<span style="position: absolute; top: 10px; right: 10px; background: #e65100; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">⭐ Platform Style</span>' : ''}
       </div>
       <div style="padding: 14px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
         <div>
@@ -220,9 +243,9 @@ function renderDesigns() {
           <div style="font-weight: 700; color: var(--accent); font-size: 15px;">
             ${d.price_estimate ? `₵ ${Number(d.price_estimate).toFixed(2)}` : '<span style="font-size: 12px; color: var(--muted); font-weight: normal;">Custom Order</span>'}
           </div>
-          <div style="display: flex; gap: 8px;">
+          <div style="display: flex; gap: 6px;">
             <button type="button" class="btn ghost sm" data-act="view-full" data-id="${d.id}" style="padding: 0 8px; height: 32px; min-height: 32px; font-size: 12px;">Zoom</button>
-            <button type="button" class="btn ghost sm" data-act="delete-design" data-id="${d.id}" style="padding: 0 8px; height: 32px; min-height: 32px; color: #b3261e; font-size: 12px;">Delete</button>
+            ${d.is_owner ? `<button type="button" class="btn ghost sm" data-act="delete-design" data-id="${d.id}" style="padding: 0 8px; height: 32px; min-height: 32px; color: #b3261e; font-size: 12px;">Delete</button>` : ''}
           </div>
         </div>
       </div>
@@ -230,21 +253,85 @@ function renderDesigns() {
   `).join('');
 }
 
-function showView(v: 'dashboard' | 'form' | 'saved' | 'profile' | 'designs' | 'appointments'): void {
+async function fetchAdminData() {
+  if (!currentUser?.is_admin) return;
+  try {
+    const [stats, tailors] = await Promise.all([
+      api.getAdminStats(),
+      api.getAdminTailors()
+    ]);
+    adminTailors = tailors;
+    
+    $('admin-stat-tailors').textContent = String(stats.total_tailors);
+    $('admin-stat-clients').textContent = String(stats.total_customers);
+    $('admin-stat-global').textContent = String(stats.global_designs);
+    $('admin-stat-designs').textContent = String(stats.total_designs);
+    
+    renderAdminTailors();
+  } catch (err: any) {
+    console.error('Error fetching admin data:', err);
+    toast('Admin error: ' + err.message);
+  }
+}
+
+function renderAdminTailors() {
+  const tbody = $('admin-tailors-tbody');
+  if (!tbody) return;
+  
+  const q = adminSearchQuery.trim().toLowerCase();
+  const filtered = adminTailors.filter(t => 
+    !q || 
+    t.shop_name.toLowerCase().includes(q) ||
+    t.full_name.toLowerCase().includes(q) ||
+    t.email.toLowerCase().includes(q) ||
+    t.phone.toLowerCase().includes(q)
+  );
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">No tailor shops found matching "${esc(q)}".</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(t => `
+    <tr style="border-bottom: 1px solid var(--line);">
+      <td style="padding: 12px;">
+        <div style="font-weight: 600; color: var(--ink);">${esc(t.shop_name)}</div>
+        <div style="font-size: 12px; color: var(--muted);">${esc(t.full_name)}</div>
+      </td>
+      <td style="padding: 12px;">
+        <div>${esc(t.email)}</div>
+        <div style="font-size: 12px; color: var(--muted);">${esc(t.phone || 'No phone')}</div>
+      </td>
+      <td style="padding: 12px; text-align: center; font-weight: 600; color: var(--accent);">${t.client_count}</td>
+      <td style="padding: 12px; text-align: center;">${t.custom_designs}</td>
+      <td style="padding: 12px;">
+        <span style="font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; background: ${t.is_admin ? '#fbe9e7; color: #d84315;' : '#e8f5e9; color: #2e7d32;'}">
+          ${t.is_admin ? 'Admin' : 'Tailor Shop'}
+        </span>
+      </td>
+      <td style="padding: 12px; font-size: 12px; color: var(--muted);">${t.created_at ? t.created_at.substring(0, 10) : ''}</td>
+    </tr>
+  `).join('');
+}
+
+function showView(v: 'dashboard' | 'form' | 'saved' | 'profile' | 'designs' | 'appointments' | 'admin'): void {
   $('view-dashboard').classList.toggle('hide', v !== 'dashboard');
   $('view-form').classList.toggle('hide', v !== 'form');
   $('view-saved').classList.toggle('hide', v !== 'saved');
   $('view-my-profile').classList.toggle('hide', v !== 'profile');
   $('view-designs').classList.toggle('hide', v !== 'designs');
   $('view-appointments').classList.toggle('hide', v !== 'appointments');
+  $('view-admin').classList.toggle('hide', v !== 'admin');
   
   $('tab-dashboard').classList.toggle('active', v === 'dashboard');
   $('tab-form').classList.toggle('active', v === 'form');
   $('tab-saved').classList.toggle('active', v === 'saved');
   $('tab-profile').classList.toggle('active', v === 'profile');
+  $('tab-admin').classList.toggle('active', v === 'admin');
   
   if (v === 'saved') renderSaved();
   if (v === 'designs') fetchDesigns();
+  if (v === 'admin') fetchAdminData();
   if (v === 'profile' || v === 'dashboard') renderProfile(); // Re-use renderProfile to update stats
   window.scrollTo(0, 0);
 }
@@ -474,8 +561,11 @@ $<HTMLFormElement>('form-upload-design').addEventListener('submit', async e => {
 
   const title = $<HTMLInputElement>('input-design-title').value.trim();
   const category = $<HTMLSelectElement>('input-design-category').value;
+  const gender = $<HTMLSelectElement>('input-design-gender').value;
+  const age = $<HTMLSelectElement>('input-design-age').value;
   const price = $<HTMLInputElement>('input-design-price').value.trim();
   const desc = $<HTMLInputElement>('input-design-desc').value.trim();
+  const isGlobal = currentUser?.is_admin && $<HTMLInputElement>('input-design-global')?.checked;
 
   const btn = $<HTMLButtonElement>('btn-submit-design');
   btn.disabled = true;
@@ -486,14 +576,19 @@ $<HTMLFormElement>('form-upload-design').addEventListener('submit', async e => {
     formData.append('image', file);
     formData.append('title', title);
     formData.append('category', category);
+    formData.append('gender', gender);
+    formData.append('target_group', age);
     formData.append('price_estimate', price);
     formData.append('description', desc);
+    if (isGlobal) {
+      formData.append('is_global', '1');
+    }
 
     const res = await api.saveDesign(formData);
     if (res.design) {
       designs.unshift(res.design);
       renderDesigns();
-      toast('Design added to catalog!');
+      toast(isGlobal ? 'Preloaded platform style added!' : 'Design added to catalog!');
       $('panel-upload-design').classList.add('hide');
       resetDesignForm();
     }
@@ -506,7 +601,33 @@ $<HTMLFormElement>('form-upload-design').addEventListener('submit', async e => {
   }
 });
 
-// Category Filter pills
+// Search designs input
+$('search-designs').addEventListener('input', () => {
+  designSearchQuery = $<HTMLInputElement>('search-designs').value.trim();
+  renderDesigns();
+});
+
+// 1. Gender Filter buttons
+$('filter-gender-group').addEventListener('click', e => {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.filter-gender-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-gender-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeGender = btn.dataset.gender || 'All';
+  renderDesigns();
+});
+
+// 2. Age Group Filter buttons
+$('filter-age-group').addEventListener('click', e => {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.filter-age-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-age-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeAge = btn.dataset.age || 'All';
+  renderDesigns();
+});
+
+// 3. Clothing Category Filter pills
 $('design-category-filters').addEventListener('click', e => {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.design-filter-btn');
   if (!btn) return;
@@ -514,6 +635,23 @@ $('design-category-filters').addEventListener('click', e => {
   btn.classList.add('active');
   activeCategory = btn.dataset.category || 'All';
   renderDesigns();
+});
+
+// Admin listeners
+$('tab-admin').addEventListener('click', () => showView('admin'));
+
+$('btn-admin-preload-style')?.addEventListener('click', () => {
+  showView('designs');
+  $('panel-upload-design').classList.remove('hide');
+  const checkGlobal = $<HTMLInputElement>('input-design-global');
+  if (checkGlobal) checkGlobal.checked = true;
+  $('upload-panel-title').textContent = '⭐ Preload Platform Style (For All Tailors)';
+  $<HTMLInputElement>('input-design-title').focus();
+});
+
+$('search-admin-tailors')?.addEventListener('input', () => {
+  adminSearchQuery = $<HTMLInputElement>('search-admin-tailors').value;
+  renderAdminTailors();
 });
 
 // Designs grid actions (Zoom / Delete)
@@ -855,6 +993,17 @@ function updateAuthState(user: User | null) {
   if (user) {
     $('app-login').classList.add('hide');
     $('app-content').classList.remove('hide');
+    
+    // Toggle Admin tab & global preloading controls
+    const tabAdmin = $('tab-admin');
+    if (tabAdmin) {
+      tabAdmin.classList.toggle('hide', !user.is_admin);
+    }
+    const wrapGlobal = $('wrap-design-global');
+    if (wrapGlobal) {
+      wrapGlobal.classList.toggle('hide', !user.is_admin);
+    }
+
     fetchProfiles().then(() => showView('dashboard'));
   } else {
     $('app-login').classList.remove('hide');

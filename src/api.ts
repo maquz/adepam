@@ -4,6 +4,7 @@ export interface User {
   full_name: string;
   email: string;
   phone: string;
+  is_admin?: boolean;
 }
 
 export interface Customer {
@@ -20,12 +21,36 @@ export interface Customer {
 
 export interface Design {
   id: number;
+  tailor_id?: number;
   title: string;
   category: string;
+  gender: 'Men' | 'Women' | 'Unisex';
+  target_group: 'Adults' | 'Children';
   description: string;
   price_estimate: number | null;
   image_url: string;
+  is_global: boolean;
+  is_owner: boolean;
   created_at: string;
+}
+
+export interface AdminTailor {
+  id: number;
+  shop_name: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  is_admin: boolean;
+  created_at: string;
+  client_count: number;
+  custom_designs: number;
+}
+
+export interface AdminStats {
+  total_tailors: number;
+  total_customers: number;
+  total_designs: number;
+  global_designs: number;
 }
 
 // In production, /api.php is on the same domain (adepam.codecasticgh.com/api.php)
@@ -172,5 +197,15 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ id }),
     });
+  },
+
+  async getAdminStats(): Promise<AdminStats> {
+    const res = await request('admin_stats');
+    return res.stats;
+  },
+
+  async getAdminTailors(): Promise<AdminTailor[]> {
+    const res = await request('admin_tailors');
+    return res.tailors || [];
   },
 };
