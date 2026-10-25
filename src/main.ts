@@ -907,6 +907,15 @@ $('design-category-filters').addEventListener('click', e => {
 // Admin Tab & Actions
 $('tab-admin').addEventListener('click', () => showView('admin'));
 
+$('btn-admin-refresh')?.addEventListener('click', async () => {
+  const btn = $('btn-admin-refresh');
+  btn.style.opacity = '0.6';
+  toast('Refreshing live dashboard data...');
+  await fetchAdminData();
+  btn.style.opacity = '1';
+  toast(`Refreshed: ${adminTailors.length} shops loaded`);
+});
+
 $('btn-admin-preload-style')?.addEventListener('click', () => {
   showView('designs');
   $('panel-upload-design').classList.remove('hide');

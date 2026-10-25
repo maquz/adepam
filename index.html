@@ -324,7 +324,10 @@
               <h2 style="font-size: 26px; margin: 0;">🛡️ Admin Dashboard</h2>
               <p style="color: var(--muted); margin: 4px 0 0; font-size: 14px;">Monitor and manage all registered tailoring shops, users, and platform-wide styles.</p>
             </div>
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button id="btn-admin-refresh" class="btn ghost sm" type="button" style="display: flex; align-items: center; gap: 6px; background: #fff;" title="Reload live data">
+                <span>🔄</span> Refresh
+              </button>
               <button id="btn-admin-add-tailor" class="btn ghost sm" type="button" style="display: flex; align-items: center; gap: 6px; background: #fff;">
                 <span>➕</span> Add Shop / User
               </button>

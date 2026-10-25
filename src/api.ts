@@ -98,8 +98,10 @@ async function request(action: string, options: RequestInit = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const url = `${API_BASE}?action=${encodeURIComponent(action)}`;
-  const res = await fetch(url, { ...options, headers });
+  const url = `${API_BASE}?action=${encodeURIComponent(action)}&_t=${Date.now()}`;
+  headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+  headers['Pragma'] = 'no-cache';
+  const res = await fetch(url, { ...options, headers, cache: 'no-store' });
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
