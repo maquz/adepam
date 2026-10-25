@@ -166,15 +166,107 @@
           </div>
         </section>
 
-        <!-- Placeholder for Designs View -->
+        <!-- Style Designs View -->
         <section id="view-designs" class="hide">
-          <div class="card" style="text-align: center; padding: 48px 16px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">👗</div>
-            <h2 style="margin: 0 0 8px;">Style Designs</h2>
-            <p style="color: var(--muted); margin-bottom: 24px;">Upload and organize your design catalog for customers to choose from.</p>
-            <button id="btn-back-designs" class="btn ghost" type="button">&larr; Back to Dashboard</button>
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <button id="btn-back-designs" class="btn ghost sm" type="button" style="padding: 0 10px;">&larr; Dashboard</button>
+              <h2 style="font-size: 26px; margin: 0;">Style Designs <span id="design-count-badge" class="badge">0</span></h2>
+            </div>
+            <button id="btn-open-upload-design" class="btn primary sm" type="button" style="display: flex; align-items: center; gap: 6px;">
+              <span>➕</span> Upload Design
+            </button>
           </div>
+
+          <!-- Upload Design Panel -->
+          <div id="panel-upload-design" class="card hide" style="border: 2px dashed var(--accent); background: var(--accent-soft); padding: 20px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="font-size: 20px; color: var(--accent);">Add Design to Catalog</h3>
+              <button id="btn-close-upload-design" type="button" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted);">&times;</button>
+            </div>
+            
+            <form id="form-upload-design" style="display: grid; gap: 14px;">
+              <div>
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--ink);">Design Photo *</label>
+                <div id="drop-zone-design" style="border: 2px dashed var(--line); background: #fff; border-radius: 12px; padding: 24px 16px; text-align: center; cursor: pointer; transition: border-color 0.2s;">
+                  <input id="input-design-file" type="file" accept="image/*" style="display: none;" />
+                  <div id="preview-design-box" class="hide" style="margin-bottom: 12px;">
+                    <img id="preview-design-img" src="" alt="Preview" style="max-height: 180px; max-width: 100%; border-radius: 8px; object-fit: contain; margin: 0 auto;" />
+                  </div>
+                  <div id="drop-zone-prompt">
+                    <div style="font-size: 32px; margin-bottom: 6px;">📸</div>
+                    <div style="font-weight: 600; color: var(--accent); font-size: 14px;">Tap to select design photo</div>
+                    <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Supports JPG, PNG, WEBP</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid-fields wide">
+                <label class="field">
+                  <span>Design Title *</span>
+                  <input id="input-design-title" type="text" placeholder="e.g. Modern Kaftan, Kaba &amp; Slit" required />
+                </label>
+                <label class="field">
+                  <span>Category</span>
+                  <select id="input-design-category" style="width: 100%; font: 16px 'Inter', sans-serif; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; min-height: 46px; outline: none;">
+                    <option value="Kaba &amp; Slit">Kaba &amp; Slit</option>
+                    <option value="Kaftan / Senator">Kaftan / Senator</option>
+                    <option value="Agbada">Agbada</option>
+                    <option value="Suit / Blazer">Suit / Blazer</option>
+                    <option value="Dress / Gown">Dress / Gown</option>
+                    <option value="Shirt &amp; Trousers">Shirt &amp; Trousers</option>
+                    <option value="Traditional / Kente">Traditional / Kente</option>
+                    <option value="Casual Wear">Casual Wear</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="grid-fields wide">
+                <label class="field">
+                  <span>Estimated Price (₵) (Optional)</span>
+                  <input id="input-design-price" type="number" step="0.01" min="0" placeholder="0.00" />
+                </label>
+                <label class="field">
+                  <span>Fabric / Style Notes (Optional)</span>
+                  <input id="input-design-desc" type="text" placeholder="e.g. Requires 4 yards, embroidery included" />
+                </label>
+              </div>
+
+              <p id="error-upload-design" class="error hide" role="alert"></p>
+
+              <div style="display: flex; gap: 10px; margin-top: 6px;">
+                <button id="btn-submit-design" class="btn primary" type="submit" style="flex: 2;">Upload to Catalog</button>
+                <button id="btn-cancel-design" class="btn ghost" type="button" style="flex: 1;">Cancel</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Category filter buttons -->
+          <div id="design-category-filters" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 16px; scrollbar-width: none;">
+            <button class="tab active sm design-filter-btn" data-category="All" type="button">All Designs</button>
+            <button class="tab sm design-filter-btn" data-category="Kaba &amp; Slit" type="button">Kaba &amp; Slit</button>
+            <button class="tab sm design-filter-btn" data-category="Kaftan / Senator" type="button">Kaftan</button>
+            <button class="tab sm design-filter-btn" data-category="Agbada" type="button">Agbada</button>
+            <button class="tab sm design-filter-btn" data-category="Suit / Blazer" type="button">Suit</button>
+            <button class="tab sm design-filter-btn" data-category="Dress / Gown" type="button">Dress</button>
+            <button class="tab sm design-filter-btn" data-category="Traditional / Kente" type="button">Traditional</button>
+          </div>
+
+          <!-- Designs Grid -->
+          <div id="designs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px;"></div>
+          <p id="designs-empty" class="empty hide">No style designs added yet. Upload your first design above!</p>
         </section>
+
+        <!-- Lightbox Modal for Full View -->
+        <div id="modal-lightbox" class="hide" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+          <button id="btn-close-lightbox" style="position: absolute; top: 18px; right: 24px; background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1;">&times;</button>
+          <img id="lightbox-img" src="" alt="Full view" style="max-height: 75vh; max-width: 90vw; border-radius: 12px; object-fit: contain; box-shadow: 0 8px 32px rgba(0,0,0,0.5);" />
+          <div id="lightbox-caption" style="color: white; margin-top: 16px; text-align: center; max-width: 500px;">
+            <h3 id="lightbox-title" style="font-size: 22px; color: #fff;">Design Title</h3>
+            <p id="lightbox-desc" style="opacity: 0.8; font-size: 14px; margin-top: 4px;"></p>
+          </div>
+        </div>
 
         <!-- Placeholder for Appointments View -->
         <section id="view-appointments" class="hide">

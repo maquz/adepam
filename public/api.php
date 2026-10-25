@@ -23,6 +23,20 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
+
+    // Ensure designs table exists
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `designs` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `tailor_id` INT NOT NULL,
+      `title` VARCHAR(150) NOT NULL,
+      `category` VARCHAR(100) DEFAULT 'General',
+      `description` TEXT DEFAULT NULL,
+      `price_estimate` DECIMAL(10,2) DEFAULT NULL,
+      `image_url` VARCHAR(255) NOT NULL,
+      `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT `fk_designs_tailor` FOREIGN KEY (`tailor_id`) REFERENCES `tailors` (`id`) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]);
@@ -75,6 +89,9 @@ function getAuthUser($pdo, $secret) {
 }
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
+if (!empty($_POST)) {
+    $input = array_merge($input, $_POST);
+}
 $action = $_GET['action'] ?? ($input['action'] ?? '');
 
 switch ($action) {
@@ -258,6 +275,124 @@ switch ($action) {
         }
         $stmt = $pdo->prepare('DELETE FROM customers WHERE id = ? AND tailor_id = ?');
         $stmt->execute([$id, $user['id']]);
+        echo json_encode(['success' => true]);
+        break;
+
+    case 'designs':
+        $user = getAuthUser($pdo, $jwt_secret);
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized']);
+            exit;
+        }
+        $stmt = $pdo->prepare('SELECT id, title, category, description, price_estimate, image_url, created_at FROM designs WHERE tailor_id = ? ORDER BY created_at DESC');
+        $stmt->execute([$user['id']]);
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$r) {
+            $r['price_estimate'] = $r['price_estimate'] !== null ? (float)$r['price_estimate'] : null;
+        }
+        echo json_encode(['designs' => $rows]);
+        break;
+
+    case 'save_design':
+        $user = getAuthUser($pdo, $jwt_secret);
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized']);
+            exit;
+        }
+        $title = trim($input['title'] ?? '');
+        $category = trim($input['category'] ?? 'General');
+        $description = trim($input['description'] ?? '');
+        $price = !empty($input['price_estimate']) ? floatval($input['price_estimate']) : null;
+        $imageUrl = '';
+
+        $uploadDir = __DIR__ . '/uploads/designs/';
+        if (!file_exists($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        // Handle file upload
+        if (!empty($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $tmpName = $_FILES['image']['tmp_name'];
+            $origName = $_FILES['image']['name'];
+            $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
+                $ext = 'jpg';
+            }
+            $fileName = 'design_' . $user['id'] . '_' . uniqid() . '.' . $ext;
+            if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
+                $imageUrl = 'uploads/designs/' . $fileName;
+            }
+        } elseif (!empty($input['image_data'])) {
+            // Base64 data URL support
+            if (preg_match('/^data:image\/(\w+);base64,/', $input['image_data'], $type)) {
+                $data = substr($input['image_data'], strpos($input['image_data'], ',') + 1);
+                $ext = strtolower($type[1]);
+                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
+                    $ext = 'jpg';
+                }
+                $data = base64_decode($data);
+                if ($data !== false) {
+                    $fileName = 'design_' . $user['id'] . '_' . uniqid() . '.' . $ext;
+                    if (file_put_contents($uploadDir . $fileName, $data)) {
+                        $imageUrl = 'uploads/designs/' . $fileName;
+                    }
+                }
+            }
+        }
+
+        if (!$title) {
+            $title = 'Design Style';
+        }
+
+        if (!$imageUrl) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Please provide an image for the design.']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare('INSERT INTO designs (tailor_id, title, category, description, price_estimate, image_url) VALUES (?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$user['id'], $title, $category, $description, $price, $imageUrl]);
+        $designId = $pdo->lastInsertId();
+
+        echo json_encode([
+            'success' => true,
+            'design' => [
+                'id' => (int)$designId,
+                'title' => $title,
+                'category' => $category,
+                'description' => $description,
+                'price_estimate' => $price,
+                'image_url' => $imageUrl,
+                'created_at' => date('Y-m-d H:i:s')
+            ]
+        ]);
+        break;
+
+    case 'delete_design':
+        $user = getAuthUser($pdo, $jwt_secret);
+        if (!$user) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized']);
+            exit;
+        }
+        $id = (int)($input['id'] ?? 0);
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Design ID required']);
+            exit;
+        }
+        $stmt = $pdo->prepare('SELECT image_url FROM designs WHERE id = ? AND tailor_id = ?');
+        $stmt->execute([$id, $user['id']]);
+        $design = $stmt->fetch();
+        if ($design) {
+            if ($design['image_url'] && file_exists(__DIR__ . '/' . $design['image_url'])) {
+                @unlink(__DIR__ . '/' . $design['image_url']);
+            }
+            $del = $pdo->prepare('DELETE FROM designs WHERE id = ? AND tailor_id = ?');
+            $del->execute([$id, $user['id']]);
+        }
         echo json_encode(['success' => true]);
         break;
 

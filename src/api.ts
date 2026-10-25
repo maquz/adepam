@@ -18,6 +18,16 @@ export interface Customer {
   notes: string;
 }
 
+export interface Design {
+  id: number;
+  title: string;
+  category: string;
+  description: string;
+  price_estimate: number | null;
+  image_url: string;
+  created_at: string;
+}
+
 // In production, /api.php is on the same domain (adepam.codecasticgh.com/api.php)
 // In local development, if on localhost, it can target the remote server or local
 const API_BASE = window.location.hostname === 'localhost' 
@@ -51,8 +61,9 @@ export function clearAuth() {
 
 async function request(action: string, options: RequestInit = {}) {
   const token = getToken();
+  const isFormData = options.body instanceof FormData;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers as Record<string, string> || {}),
   };
   if (token) {
@@ -139,6 +150,25 @@ export const api = {
 
   async deleteCustomer(id: string) {
     return await request('delete_customer', {
+      method: 'POST',
+      body: JSON.stringify({ id }),
+    });
+  },
+
+  async getDesigns(): Promise<Design[]> {
+    const res = await request('designs');
+    return res.designs || [];
+  },
+
+  async saveDesign(formData: FormData) {
+    return await request('save_design', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  async deleteDesign(id: number) {
+    return await request('delete_design', {
       method: 'POST',
       body: JSON.stringify({ id }),
     });

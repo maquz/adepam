@@ -1,5 +1,5 @@
 import './styles.css';
-import { api, getStoredUser, User } from './api';
+import { api, getStoredUser, User, Design } from './api';
 
 type Unit = 'in' | 'cm';
 
@@ -174,6 +174,62 @@ function fill(p: Profile | null): void {
   $('form-error').classList.add('hide');
 }
 
+let designs: Design[] = [];
+let activeCategory = 'All';
+
+async function fetchDesigns() {
+  if (!currentUser) return;
+  try {
+    designs = await api.getDesigns();
+    renderDesigns();
+  } catch (err) {
+    console.error('Error fetching designs:', err);
+  }
+}
+
+function renderDesigns() {
+  const badge = $('design-count-badge');
+  if (badge) badge.textContent = String(designs.length);
+  const container = $('designs-grid');
+  const empty = $('designs-empty');
+  if (!container || !empty) return;
+  
+  const filtered = activeCategory === 'All' 
+    ? designs 
+    : designs.filter(d => d.category === activeCategory);
+  
+  if (filtered.length === 0) {
+    container.innerHTML = '';
+    empty.classList.remove('hide');
+    return;
+  }
+  
+  empty.classList.add('hide');
+  container.innerHTML = filtered.map(d => `
+    <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+      <div style="position: relative; cursor: pointer; aspect-ratio: 1/1; overflow: hidden; background: #eee;" data-act="lightbox" data-id="${d.id}">
+        <img src="${esc(d.image_url)}" alt="${esc(d.title)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" loading="lazy" />
+        <span style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.65); color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 500; backdrop-filter: blur(4px);">${esc(d.category)}</span>
+      </div>
+      <div style="padding: 14px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <h4 style="font-size: 18px; margin: 0 0 4px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600;">${esc(d.title)}</h4>
+          ${d.description ? `<p style="font-size: 13px; color: var(--muted); margin: 0 0 8px; line-height: 1.4;">${esc(d.description)}</p>` : ''}
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px;">
+          <div style="font-weight: 700; color: var(--accent); font-size: 15px;">
+            ${d.price_estimate ? `₵ ${Number(d.price_estimate).toFixed(2)}` : '<span style="font-size: 12px; color: var(--muted); font-weight: normal;">Custom Order</span>'}
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn ghost sm" data-act="view-full" data-id="${d.id}" style="padding: 0 8px; height: 32px; min-height: 32px; font-size: 12px;">Zoom</button>
+            <button type="button" class="btn ghost sm" data-act="delete-design" data-id="${d.id}" style="padding: 0 8px; height: 32px; min-height: 32px; color: #b3261e; font-size: 12px;">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
 function showView(v: 'dashboard' | 'form' | 'saved' | 'profile' | 'designs' | 'appointments'): void {
   $('view-dashboard').classList.toggle('hide', v !== 'dashboard');
   $('view-form').classList.toggle('hide', v !== 'form');
@@ -188,6 +244,7 @@ function showView(v: 'dashboard' | 'form' | 'saved' | 'profile' | 'designs' | 'a
   $('tab-profile').classList.toggle('active', v === 'profile');
   
   if (v === 'saved') renderSaved();
+  if (v === 'designs') fetchDesigns();
   if (v === 'profile' || v === 'dashboard') renderProfile(); // Re-use renderProfile to update stats
   window.scrollTo(0, 0);
 }
@@ -356,6 +413,147 @@ $('btn-dash-designs').addEventListener('click', () => showView('designs'));
 $('btn-dash-appointments').addEventListener('click', () => showView('appointments'));
 $('btn-back-designs').addEventListener('click', () => showView('dashboard'));
 $('btn-back-appointments').addEventListener('click', () => showView('dashboard'));
+
+// Style Designs interactions
+$('btn-open-upload-design').addEventListener('click', () => {
+  $('panel-upload-design').classList.remove('hide');
+  $<HTMLInputElement>('input-design-title').focus();
+});
+
+$('btn-close-upload-design').addEventListener('click', () => {
+  $('panel-upload-design').classList.add('hide');
+  resetDesignForm();
+});
+
+$('btn-cancel-design').addEventListener('click', () => {
+  $('panel-upload-design').classList.add('hide');
+  resetDesignForm();
+});
+
+const dropZone = $('drop-zone-design');
+const fileInput = $<HTMLInputElement>('input-design-file');
+const previewBox = $('preview-design-box');
+const previewImg = $<HTMLImageElement>('preview-design-img');
+const dropPrompt = $('drop-zone-prompt');
+
+dropZone.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files && fileInput.files[0]) {
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImg.src = e.target?.result as string;
+      previewBox.classList.remove('hide');
+      dropPrompt.classList.add('hide');
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+function resetDesignForm() {
+  $<HTMLFormElement>('form-upload-design').reset();
+  fileInput.value = '';
+  previewImg.src = '';
+  previewBox.classList.add('hide');
+  dropPrompt.classList.remove('hide');
+  $('error-upload-design').classList.add('hide');
+}
+
+$<HTMLFormElement>('form-upload-design').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = $('error-upload-design');
+  err.classList.add('hide');
+
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) {
+    err.textContent = 'Please select a photo for this design.';
+    err.classList.remove('hide');
+    return;
+  }
+
+  const title = $<HTMLInputElement>('input-design-title').value.trim();
+  const category = $<HTMLSelectElement>('input-design-category').value;
+  const price = $<HTMLInputElement>('input-design-price').value.trim();
+  const desc = $<HTMLInputElement>('input-design-desc').value.trim();
+
+  const btn = $<HTMLButtonElement>('btn-submit-design');
+  btn.disabled = true;
+  btn.textContent = 'Uploading...';
+
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('title', title);
+    formData.append('category', category);
+    formData.append('price_estimate', price);
+    formData.append('description', desc);
+
+    const res = await api.saveDesign(formData);
+    if (res.design) {
+      designs.unshift(res.design);
+      renderDesigns();
+      toast('Design added to catalog!');
+      $('panel-upload-design').classList.add('hide');
+      resetDesignForm();
+    }
+  } catch (error: any) {
+    err.textContent = error.message || 'Upload failed.';
+    err.classList.remove('hide');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Upload to Catalog';
+  }
+});
+
+// Category Filter pills
+$('design-category-filters').addEventListener('click', e => {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.design-filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.design-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeCategory = btn.dataset.category || 'All';
+  renderDesigns();
+});
+
+// Designs grid actions (Zoom / Delete)
+$('designs-grid').addEventListener('click', async e => {
+  const target = e.target as HTMLElement;
+  const actBtn = target.closest<HTMLElement>('[data-act]');
+  if (!actBtn) return;
+  const act = actBtn.dataset.act;
+  const id = Number(actBtn.dataset.id);
+  const design = designs.find(d => d.id === id);
+  if (!design) return;
+
+  if (act === 'lightbox' || act === 'view-full') {
+    $<HTMLImageElement>('lightbox-img').src = design.image_url;
+    $('lightbox-title').textContent = design.title + (design.price_estimate ? ` - ₵ ${Number(design.price_estimate).toFixed(2)}` : '');
+    $('lightbox-desc').textContent = `${design.category}${design.description ? ' • ' + design.description : ''}`;
+    $('modal-lightbox').classList.remove('hide');
+  } else if (act === 'delete-design') {
+    if (window.confirm(`Delete design "${design.title}"?`)) {
+      try {
+        await api.deleteDesign(design.id);
+        designs = designs.filter(d => d.id !== design.id);
+        renderDesigns();
+        toast('Design removed');
+      } catch (error: any) {
+        toast('Error: ' + error.message);
+      }
+    }
+  }
+});
+
+// Lightbox close
+$('btn-close-lightbox').addEventListener('click', () => {
+  $('modal-lightbox').classList.add('hide');
+});
+$('modal-lightbox').addEventListener('click', e => {
+  if (e.target === $('modal-lightbox')) {
+    $('modal-lightbox').classList.add('hide');
+  }
+});
 
 $('tab-form').addEventListener('click', () => showView('form'));
 $('tab-saved').addEventListener('click', () => showView('saved'));
