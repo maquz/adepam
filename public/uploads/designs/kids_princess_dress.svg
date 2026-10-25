@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="pink-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#db2777"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="#fdf2f8"/>
+  <!-- Bodice -->
+  <path d="M160,110 L240,110 L230,180 L170,180 Z" fill="url(#pink-grad)"/>
+  <!-- Flared Skirt -->
+  <path d="M170,180 Q200,185 230,180 L290,320 Q200,340 110,320 Z" fill="#f472b6" stroke="#db2777" stroke-width="2"/>
+  <!-- Waist Ribbon & Bow -->
+  <rect x="165" y="177" width="70" height="6" fill="#be185d"/>
+  <circle cx="200" cy="180" r="8" fill="#be185d"/>
+  <!-- Puffy Sleeves -->
+  <circle cx="150" cy="125" r="16" fill="url(#pink-grad)"/>
+  <circle cx="250" cy="125" r="16" fill="url(#pink-grad)"/>
+  <!-- Polka Dots on Skirt -->
+  <circle cx="150" cy="230" r="5" fill="#fdf2f8" opacity="0.8"/>
+  <circle cx="200" cy="245" r="5" fill="#fdf2f8" opacity="0.8"/>
+  <circle cx="250" cy="230" r="5" fill="#fdf2f8" opacity="0.8"/>
+  <circle cx="170" cy="280" r="5" fill="#fdf2f8" opacity="0.8"/>
+  <circle cx="230" cy="285" r="5" fill="#fdf2f8" opacity="0.8"/>
+  <text x="200" y="370" text-anchor="middle" fill="#db2777" font-family="'Inter', sans-serif" font-weight="600" font-size="14" letter-spacing="1">GIRLS PRINCESS DRESS</text>
+</svg>

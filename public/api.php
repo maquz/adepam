@@ -24,10 +24,42 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
 
-    // Ensure designs table exists with new columns
+    // Ensure tailors table exists
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `tailors` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `shop_name` VARCHAR(150) NOT NULL,
+      `full_name` VARCHAR(150) NOT NULL,
+      `email` VARCHAR(150) NOT NULL UNIQUE,
+      `phone` VARCHAR(50) DEFAULT NULL,
+      `is_admin` TINYINT(1) DEFAULT 0,
+      `password_hash` VARCHAR(255) NOT NULL,
+      `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    // Ensure customers table exists
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `customers` (
+      `id` VARCHAR(64) PRIMARY KEY,
+      `tailor_id` INT NOT NULL,
+      `name` VARCHAR(150) NOT NULL,
+      `contact` VARCHAR(150) DEFAULT NULL,
+      `date` VARCHAR(50) DEFAULT NULL,
+      `charge` DECIMAL(10,2) DEFAULT 0.00,
+      `style_id` INT DEFAULT NULL,
+      `style_name` VARCHAR(150) DEFAULT NULL,
+      `style_image` VARCHAR(255) DEFAULT NULL,
+      `unit` VARCHAR(10) DEFAULT 'in',
+      `m` LONGTEXT DEFAULT NULL,
+      `material` TEXT DEFAULT NULL,
+      `notes` TEXT DEFAULT NULL,
+      `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+      `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT `fk_customers_tailor` FOREIGN KEY (`tailor_id`) REFERENCES `tailors` (`id`) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    // Ensure designs table exists
     $pdo->exec("CREATE TABLE IF NOT EXISTS `designs` (
       `id` INT AUTO_INCREMENT PRIMARY KEY,
-      `tailor_id` INT NOT NULL,
+      `tailor_id` INT NULL,
       `title` VARCHAR(150) NOT NULL,
       `category` VARCHAR(100) DEFAULT 'General',
       `gender` VARCHAR(20) DEFAULT 'Unisex',
@@ -36,21 +68,117 @@ try {
       `price_estimate` DECIMAL(10,2) DEFAULT NULL,
       `image_url` VARCHAR(255) NOT NULL,
       `is_global` TINYINT(1) DEFAULT 0,
-      `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT `fk_designs_tailor` FOREIGN KEY (`tailor_id`) REFERENCES `tailors` (`id`) ON DELETE CASCADE
+      `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
 
-    // Add new columns if missing
+    // Alter table migrations to guarantee columns exist
+    try { $pdo->exec("ALTER TABLE `tailors` ADD COLUMN `is_admin` TINYINT(1) DEFAULT 0 AFTER `phone`"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE `customers` ADD COLUMN `style_id` INT NULL AFTER `charge`"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE `customers` ADD COLUMN `style_name` VARCHAR(150) NULL AFTER `style_id`"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE `customers` ADD COLUMN `style_image` VARCHAR(255) NULL AFTER `style_name`"); } catch (Exception $e) {}
+    try { $pdo->exec("ALTER TABLE `designs` MODIFY COLUMN `tailor_id` INT NULL"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE `designs` ADD COLUMN `gender` VARCHAR(20) DEFAULT 'Unisex' AFTER `category`"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE `designs` ADD COLUMN `target_group` VARCHAR(20) DEFAULT 'Adults' AFTER `gender`"); } catch (Exception $e) {}
     try { $pdo->exec("ALTER TABLE `designs` ADD COLUMN `is_global` TINYINT(1) DEFAULT 0 AFTER `price_estimate`"); } catch (Exception $e) {}
-    try { $pdo->exec("ALTER TABLE `tailors` ADD COLUMN `is_admin` TINYINT(1) DEFAULT 0 AFTER `phone`"); } catch (Exception $e) {}
 
     // Ensure at least one admin exists (make the first tailor admin)
     try {
         $checkAdmin = $pdo->query("SELECT COUNT(*) FROM `tailors` WHERE `is_admin` = 1")->fetchColumn();
         if ((int)$checkAdmin === 0) {
             $pdo->exec("UPDATE `tailors` SET `is_admin` = 1 ORDER BY id ASC LIMIT 1");
+        }
+    } catch (Exception $e) {}
+
+    // Auto-seed high-quality preloaded styles if not already present
+    try {
+        $globalCount = (int)$pdo->query("SELECT COUNT(*) FROM `designs` WHERE `is_global` = 1")->fetchColumn();
+        if ($globalCount < 6) {
+            $firstTailorId = $pdo->query("SELECT id FROM `tailors` ORDER BY is_admin DESC, id ASC LIMIT 1")->fetchColumn();
+            $tId = $firstTailorId ? (int)$firstTailorId : null;
+
+            $preloaded = [
+                [
+                    'title' => 'Traditional Kaba & Slit',
+                    'category' => 'Kaba & Slit',
+                    'gender' => 'Women',
+                    'target_group' => 'Adults',
+                    'description' => 'Classic Ghanaian Kaba and Slit with lace embroidery and peplum flare.',
+                    'price_estimate' => 350.00,
+                    'image_url' => 'uploads/designs/kaba_slit_gold.jpg'
+                ],
+                [
+                    'title' => 'African Print Fitted Gown',
+                    'category' => 'Dress / Gown',
+                    'gender' => 'Women',
+                    'target_group' => 'Adults',
+                    'description' => 'Fitted Ankara mermaid dress with floor-length silhouette.',
+                    'price_estimate' => 400.00,
+                    'image_url' => 'uploads/designs/african_print_dress.jpg'
+                ],
+                [
+                    'title' => 'Royal Senator Kaftan',
+                    'category' => 'Kaftan / Senator',
+                    'gender' => 'Men',
+                    'target_group' => 'Adults',
+                    'description' => 'Handcrafted modern Senator Kaftan suit with minimalist gold embroidery.',
+                    'price_estimate' => 450.00,
+                    'image_url' => 'uploads/designs/men_senator_suit.svg'
+                ],
+                [
+                    'title' => 'Grand Royal Agbada',
+                    'category' => 'Agbada',
+                    'gender' => 'Men',
+                    'target_group' => 'Adults',
+                    'description' => '3-piece Agbada ensemble with intricate center medallion embroidery.',
+                    'price_estimate' => 850.00,
+                    'image_url' => 'uploads/designs/men_agbada_grand.svg'
+                ],
+                [
+                    'title' => 'Slim-Fit Executive Blazer',
+                    'category' => 'Suit / Blazer',
+                    'gender' => 'Men',
+                    'target_group' => 'Adults',
+                    'description' => 'Custom tailored formal suit blazer with notch lapels and silk lining.',
+                    'price_estimate' => 600.00,
+                    'image_url' => 'uploads/designs/men_blazer_suit.svg'
+                ],
+                [
+                    'title' => 'Royal Ceremonial Kente',
+                    'category' => 'Traditional / Kente',
+                    'gender' => 'Unisex',
+                    'target_group' => 'Adults',
+                    'description' => 'Authentic hand-woven Bonwire Kente cloth drape for traditional events.',
+                    'price_estimate' => 1200.00,
+                    'image_url' => 'uploads/designs/kente_traditional.svg'
+                ],
+                [
+                    'title' => 'Junior Royal Kaftan',
+                    'category' => 'Kaftan / Senator',
+                    'gender' => 'Men',
+                    'target_group' => 'Children',
+                    'description' => 'Comfortable two-piece Kaftan for young boys with contrast placket.',
+                    'price_estimate' => 200.00,
+                    'image_url' => 'uploads/designs/kids_kaftan.svg'
+                ],
+                [
+                    'title' => 'Girls Princess Dress',
+                    'category' => 'Dress / Gown',
+                    'gender' => 'Women',
+                    'target_group' => 'Children',
+                    'description' => 'Flared celebratory party dress for girls with ribbon bow detail.',
+                    'price_estimate' => 180.00,
+                    'image_url' => 'uploads/designs/kids_princess_dress.svg'
+                ]
+            ];
+
+            $ins = $pdo->prepare('INSERT INTO `designs` (tailor_id, title, category, gender, target_group, description, price_estimate, image_url, is_global) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)');
+            foreach ($preloaded as $p) {
+                $exists = $pdo->prepare('SELECT COUNT(*) FROM `designs` WHERE `title` = ? AND `is_global` = 1');
+                $exists->execute([$p['title']]);
+                if ((int)$exists->fetchColumn() === 0) {
+                    $ins->execute([$tId, $p['title'], $p['category'], $p['gender'], $p['target_group'], $p['description'], $p['price_estimate'], $p['image_url']]);
+                }
+            }
         }
     } catch (Exception $e) {}
 
@@ -134,7 +262,7 @@ switch ($action) {
         $check->execute([$email]);
         if ($check->fetch()) {
             http_response_code(400);
-            echo json_encode(['error' => 'An account with this email already exists.']);
+            echo json_encode(['error' => 'An account with this email/username already exists.']);
             exit;
         }
 
@@ -158,7 +286,7 @@ switch ($action) {
 
         if (!$email || !$password) {
             http_response_code(400);
-            echo json_encode(['error' => 'Please enter email and password.']);
+            echo json_encode(['error' => 'Please enter email/username and password.']);
             exit;
         }
 
@@ -168,7 +296,7 @@ switch ($action) {
 
         if (!$tailor || !password_verify($password, $tailor['password_hash'])) {
             http_response_code(401);
-            echo json_encode(['error' => 'Invalid email or password.']);
+            echo json_encode(['error' => 'Invalid email/username or password.']);
             exit;
         }
 
@@ -240,13 +368,14 @@ switch ($action) {
             echo json_encode(['error' => 'Unauthorized']);
             exit;
         }
-        $stmt = $pdo->prepare('SELECT id, name, contact, date, charge, unit, m, material, notes, created_at, updated_at FROM customers WHERE tailor_id = ? ORDER BY created_at DESC');
+        $stmt = $pdo->prepare('SELECT id, name, contact, date, charge, style_id, style_name, style_image, unit, m, material, notes, created_at, updated_at FROM customers WHERE tailor_id = ? ORDER BY created_at DESC');
         $stmt->execute([$user['id']]);
         $rows = $stmt->fetchAll();
 
         foreach ($rows as &$r) {
             $r['m'] = $r['m'] ? json_decode($r['m'], true) : [];
             $r['charge'] = (float)$r['charge'];
+            $r['style_id'] = $r['style_id'] !== null ? (int)$r['style_id'] : null;
         }
         echo json_encode(['customers' => $rows]);
         break;
@@ -270,20 +399,24 @@ switch ($action) {
         $contact = trim($c['contact'] ?? '');
         $date = trim($c['date'] ?? '');
         $charge = floatval($c['charge'] ?? 0);
+        $style_id = !empty($c['style_id']) ? (int)$c['style_id'] : null;
+        $style_name = trim($c['style_name'] ?? '');
+        $style_image = trim($c['style_image'] ?? '');
         $unit = $c['unit'] ?? 'in';
         $m = json_encode($c['m'] ?? []);
         $material = $c['material'] ?? '';
         $notes = $c['notes'] ?? '';
 
-        $sql = "INSERT INTO customers (id, tailor_id, name, contact, date, charge, unit, m, material, notes) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        $sql = "INSERT INTO customers (id, tailor_id, name, contact, date, charge, style_id, style_name, style_image, unit, m, material, notes) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE 
                 name = VALUES(name), contact = VALUES(contact), date = VALUES(date), 
-                charge = VALUES(charge), unit = VALUES(unit), m = VALUES(m), 
+                charge = VALUES(charge), style_id = VALUES(style_id), style_name = VALUES(style_name), style_image = VALUES(style_image),
+                unit = VALUES(unit), m = VALUES(m), 
                 material = VALUES(material), notes = VALUES(notes), updated_at = NOW()";
 
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$id, $user['id'], $name, $contact, $date, $charge, $unit, $m, $material, $notes]);
+        $stmt->execute([$id, $user['id'], $name, $contact, $date, $charge, $style_id, $style_name, $style_image, $unit, $m, $material, $notes]);
         echo json_encode(['success' => true]);
         break;
 
@@ -353,7 +486,7 @@ switch ($action) {
             $tmpName = $_FILES['image']['tmp_name'];
             $origName = $_FILES['image']['name'];
             $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
+            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'])) {
                 $ext = 'jpg';
             }
             $fileName = 'design_' . $user['id'] . '_' . uniqid() . '.' . $ext;
@@ -365,7 +498,7 @@ switch ($action) {
             if (preg_match('/^data:image\/(\w+);base64,/', $input['image_data'], $type)) {
                 $data = substr($input['image_data'], strpos($input['image_data'], ',') + 1);
                 $ext = strtolower($type[1]);
-                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
+                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'])) {
                     $ext = 'jpg';
                 }
                 $data = base64_decode($data);
@@ -475,13 +608,12 @@ switch ($action) {
             exit;
         }
 
+        // Safe query without GROUP BY strict mode issues
         $stmt = $pdo->query('
-            SELECT t.id, t.shop_name, t.full_name, t.email, t.phone, t.is_admin, t.created_at, 
-                   COUNT(c.id) AS client_count,
+            SELECT t.id, t.shop_name, t.full_name, t.email, t.phone, COALESCE(t.is_admin, 0) AS is_admin, t.created_at, 
+                   (SELECT COUNT(*) FROM customers c WHERE c.tailor_id = t.id) AS client_count,
                    (SELECT COUNT(*) FROM designs d WHERE d.tailor_id = t.id AND d.is_global = 0) AS custom_designs
             FROM tailors t
-            LEFT JOIN customers c ON c.tailor_id = t.id
-            GROUP BY t.id
             ORDER BY t.created_at DESC
         ');
         $tailors = $stmt->fetchAll();
@@ -494,7 +626,102 @@ switch ($action) {
         echo json_encode(['tailors' => $tailors]);
         break;
 
+    case 'admin_update_tailor':
+        $user = getAuthUser($pdo, $jwt_secret);
+        if (!$user || empty($user['is_admin'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Admin access required.']);
+            exit;
+        }
+        $tId = (int)($input['id'] ?? 0);
+        $shop = trim($input['shop_name'] ?? '');
+        $name = trim($input['full_name'] ?? '');
+        $email = strtolower(trim($input['email'] ?? ''));
+        $phone = trim($input['phone'] ?? '');
+        $isAdmin = !empty($input['is_admin']) ? 1 : 0;
+        $password = $input['password'] ?? '';
+
+        if (!$tId || !$shop || !$name || !$email) {
+            http_response_code(400);
+            echo json_encode(['error' => 'ID, shop name, full name, and email/username are required.']);
+            exit;
+        }
+
+        // Check if email already used by someone else
+        $check = $pdo->prepare('SELECT id FROM tailors WHERE email = ? AND id != ?');
+        $check->execute([$email, $tId]);
+        if ($check->fetch()) {
+            http_response_code(400);
+            echo json_encode(['error' => 'This email/username is already in use by another shop.']);
+            exit;
+        }
+
+        if (!empty($password)) {
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare('UPDATE tailors SET shop_name = ?, full_name = ?, email = ?, phone = ?, is_admin = ?, password_hash = ? WHERE id = ?');
+            $stmt->execute([$shop, $name, $email, $phone, $isAdmin, $hash, $tId]);
+        } else {
+            $stmt = $pdo->prepare('UPDATE tailors SET shop_name = ?, full_name = ?, email = ?, phone = ?, is_admin = ? WHERE id = ?');
+            $stmt->execute([$shop, $name, $email, $phone, $isAdmin, $tId]);
+        }
+
+        echo json_encode(['success' => true, 'message' => 'Shop data updated successfully.']);
+        break;
+
+    case 'admin_create_tailor':
+        $user = getAuthUser($pdo, $jwt_secret);
+        if (!$user || empty($user['is_admin'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Admin access required.']);
+            exit;
+        }
+        $shop = trim($input['shop_name'] ?? '');
+        $name = trim($input['full_name'] ?? '');
+        $email = strtolower(trim($input['email'] ?? ''));
+        $phone = trim($input['phone'] ?? '');
+        $password = $input['password'] ?? '';
+        $isAdmin = !empty($input['is_admin']) ? 1 : 0;
+
+        if (!$shop || !$name || !$email || !$password) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Shop name, full name, email/username, and password are required.']);
+            exit;
+        }
+
+        $check = $pdo->prepare('SELECT id FROM tailors WHERE email = ?');
+        $check->execute([$email]);
+        if ($check->fetch()) {
+            http_response_code(400);
+            echo json_encode(['error' => 'An account with this email/username already exists.']);
+            exit;
+        }
+
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $ins = $pdo->prepare('INSERT INTO tailors (shop_name, full_name, email, phone, password_hash, is_admin) VALUES (?, ?, ?, ?, ?, ?)');
+        $ins->execute([$shop, $name, $email, $phone, $hash, $isAdmin]);
+
+        echo json_encode(['success' => true, 'tailor_id' => (int)$pdo->lastInsertId()]);
+        break;
+
+    case 'admin_delete_tailor':
+        $user = getAuthUser($pdo, $jwt_secret);
+        if (!$user || empty($user['is_admin'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Admin access required.']);
+            exit;
+        }
+        $tId = (int)($input['id'] ?? 0);
+        if ($tId === (int)$user['id']) {
+            http_response_code(400);
+            echo json_encode(['error' => 'You cannot delete your own admin account.']);
+            exit;
+        }
+        $stmt = $pdo->prepare('DELETE FROM tailors WHERE id = ?');
+        $stmt->execute([$tId]);
+        echo json_encode(['success' => true]);
+        break;
+
     default:
-        echo json_encode(['status' => 'Adepam API Online', 'version' => '2.1.0']);
+        echo json_encode(['status' => 'Adepam API Online', 'version' => '2.2.0']);
         break;
 }

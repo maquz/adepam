@@ -13,6 +13,9 @@ export interface Customer {
   contact: string;
   date: string;
   charge: number;
+  style_id?: number | null;
+  style_name?: string;
+  style_image?: string;
   unit: 'in' | 'cm';
   m: Record<string, string>;
   material: string;
@@ -207,5 +210,41 @@ export const api = {
   async getAdminTailors(): Promise<AdminTailor[]> {
     const res = await request('admin_tailors');
     return res.tailors || [];
+  },
+
+  async adminUpdateTailor(data: {
+    id: number;
+    shop_name: string;
+    full_name: string;
+    email: string;
+    phone: string;
+    is_admin: boolean;
+    password?: string;
+  }) {
+    return await request('admin_update_tailor', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async adminCreateTailor(data: {
+    shop_name: string;
+    full_name: string;
+    email: string;
+    phone: string;
+    password: string;
+    is_admin?: boolean;
+  }) {
+    return await request('admin_create_tailor', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async adminDeleteTailor(id: number) {
+    return await request('admin_delete_tailor', {
+      method: 'POST',
+      body: JSON.stringify({ id }),
+    });
   },
 };

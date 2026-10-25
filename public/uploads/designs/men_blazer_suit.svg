@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="blazer-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e272e"/>
+      <stop offset="100%" stop-color="#0f1418"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#blazer-bg)"/>
+  <!-- White Dress Shirt & Tie -->
+  <polygon points="170,90 230,90 200,200" fill="#f8f9fa"/>
+  <polygon points="195,95 205,95 210,180 200,210 190,180" fill="#b3261e"/>
+  <!-- Blazer Lapels & Jacket -->
+  <path d="M120,110 L160,85 L185,220 L150,340 L110,320 Z" fill="#2d3436"/>
+  <path d="M280,110 L240,85 L215,220 L250,340 L290,320 Z" fill="#2d3436"/>
+  <!-- Lapel edges -->
+  <polygon points="160,85 185,160 170,165 185,220 160,190" fill="#353b48"/>
+  <polygon points="240,85 215,160 230,165 215,220 240,190" fill="#353b48"/>
+  <!-- Pocket Square -->
+  <rect x="145" y="170" width="22" height="4" fill="#b3261e"/>
+  <!-- Buttons -->
+  <circle cx="200" cy="240" r="4" fill="#dcdde1"/>
+  <circle cx="200" cy="270" r="4" fill="#dcdde1"/>
+  <text x="200" y="375" text-anchor="middle" fill="#dcdde1" font-family="'Inter', sans-serif" font-weight="600" font-size="14" letter-spacing="1.5">SLIM-FIT EXECUTIVE BLAZER</text>
+</svg>

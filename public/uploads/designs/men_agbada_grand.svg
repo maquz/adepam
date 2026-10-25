@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="agbada-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a154b"/>
+      <stop offset="100%" stop-color="#2c0d2d"/>
+    </linearGradient>
+    <linearGradient id="gold-emb" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5d76e"/>
+      <stop offset="100%" stop-color="#d4af37"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#agbada-bg)"/>
+  <!-- Grand Agbada Wings -->
+  <path d="M50,160 Q200,100 350,160 L320,330 Q200,350 80,330 Z" fill="#5c1d5d" stroke="#3d133e" stroke-width="2"/>
+  <!-- Inner Tunic -->
+  <path d="M150,90 Q200,105 250,90 L260,330 L140,330 Z" fill="#6d246e"/>
+  <!-- Intricate Circular Agbada Chest Embroidery -->
+  <circle cx="200" cy="180" r="50" fill="none" stroke="url(#gold-emb)" stroke-width="6" stroke-dasharray="8 4"/>
+  <circle cx="200" cy="180" r="35" fill="none" stroke="url(#gold-emb)" stroke-width="3"/>
+  <circle cx="200" cy="180" r="15" fill="url(#gold-emb)"/>
+  <path d="M200,120 L200,240 M170,180 L230,180" stroke="url(#gold-emb)" stroke-width="3"/>
+  <!-- Shoulder folds -->
+  <path d="M90,160 Q120,230 140,290" fill="none" stroke="#431444" stroke-width="4"/>
+  <path d="M310,160 Q280,230 260,290" fill="none" stroke="#431444" stroke-width="4"/>
+  <text x="200" y="375" text-anchor="middle" fill="#f5d76e" font-family="'Inter', sans-serif" font-weight="600" font-size="14" letter-spacing="1.5">GRAND ROYAL AGBADA</text>
+</svg>

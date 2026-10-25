@@ -42,8 +42,8 @@
             </div>
             
             <label class="field" style="margin-bottom: 14px;">
-              <span id="l-email-label">Email Address *</span>
-              <input id="l-email" type="email" placeholder="tailor@example.com" autocomplete="email" />
+              <span id="l-email-label">Email or Username *</span>
+              <input id="l-email" type="text" placeholder="tailor@example.com or username" autocomplete="username" />
             </label>
             
             <div id="signup-fields-2" class="hide">
@@ -197,7 +197,7 @@
                   <div id="drop-zone-prompt">
                     <div style="font-size: 32px; margin-bottom: 6px;">📸</div>
                     <div style="font-weight: 600; color: var(--accent); font-size: 14px;">Tap to select design photo</div>
-                    <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Supports JPG, PNG, WEBP</div>
+                    <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Supports JPG, PNG, WEBP, SVG</div>
                   </div>
                 </div>
               </div>
@@ -322,11 +322,16 @@
           <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
             <div>
               <h2 style="font-size: 26px; margin: 0;">🛡️ Admin Dashboard</h2>
-              <p style="color: var(--muted); margin: 4px 0 0; font-size: 14px;">Monitor all registered tailoring shops, users, and platform-wide styles.</p>
+              <p style="color: var(--muted); margin: 4px 0 0; font-size: 14px;">Monitor and manage all registered tailoring shops, users, and platform-wide styles.</p>
             </div>
-            <button id="btn-admin-preload-style" class="btn primary sm" type="button" style="display: flex; align-items: center; gap: 6px;">
-              <span>⭐</span> Preload Platform Style
-            </button>
+            <div style="display: flex; gap: 8px;">
+              <button id="btn-admin-add-tailor" class="btn ghost sm" type="button" style="display: flex; align-items: center; gap: 6px; background: #fff;">
+                <span>➕</span> Add Shop / User
+              </button>
+              <button id="btn-admin-preload-style" class="btn primary sm" type="button" style="display: flex; align-items: center; gap: 6px;">
+                <span>⭐</span> Preload Platform Style
+              </button>
+            </div>
           </div>
 
           <!-- Admin KPI Summary -->
@@ -353,7 +358,7 @@
           <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
               <h3 style="font-size: 20px; color: var(--accent);">Registered Shops &amp; Users</h3>
-              <input id="search-admin-tailors" type="search" placeholder="Search shops..." style="max-width: 260px; min-height: 38px; padding: 6px 12px; font-size: 14px;" />
+              <input id="search-admin-tailors" type="search" placeholder="Search shops or users..." style="max-width: 260px; min-height: 38px; padding: 6px 12px; font-size: 14px;" />
             </div>
 
             <div style="overflow-x: auto;">
@@ -361,16 +366,17 @@
                 <thead>
                   <tr style="border-bottom: 2px solid var(--line); color: var(--muted); font-size: 12px; text-transform: uppercase;">
                     <th style="padding: 10px 12px;">Shop / Tailor</th>
-                    <th style="padding: 10px 12px;">Email &amp; Phone</th>
+                    <th style="padding: 10px 12px;">Email / Username &amp; Phone</th>
                     <th style="padding: 10px 12px; text-align: center;">Clients</th>
                     <th style="padding: 10px 12px; text-align: center;">Custom Styles</th>
                     <th style="padding: 10px 12px;">Role</th>
                     <th style="padding: 10px 12px;">Joined</th>
+                    <th style="padding: 10px 12px; text-align: center;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="admin-tailors-tbody">
                   <tr>
-                    <td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">Loading users...</td>
+                    <td colspan="7" style="padding: 24px; text-align: center; color: var(--muted);">Loading users...</td>
                   </tr>
                 </tbody>
               </table>
@@ -378,13 +384,109 @@
           </div>
         </section>
 
+        <!-- Admin Edit Tailor Modal -->
+        <div id="modal-admin-edit-tailor" class="hide" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 120; display: flex; align-items: center; justify-content: center; padding: 16px;">
+          <div class="card" style="max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; background: #fff; padding: 24px; border-radius: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="font-size: 20px; margin: 0; color: var(--accent);">Edit Shop &amp; Tailor</h3>
+              <button id="btn-close-edit-tailor" type="button" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted);">&times;</button>
+            </div>
+
+            <form id="form-admin-edit-tailor" style="display: grid; gap: 14px;">
+              <input type="hidden" id="a-edit-id" />
+              <label class="field">
+                <span>Shop Name *</span>
+                <input id="a-edit-shop" type="text" required />
+              </label>
+              <label class="field">
+                <span>Tailor Full Name *</span>
+                <input id="a-edit-name" type="text" required />
+              </label>
+              <label class="field">
+                <span>Email / Username *</span>
+                <input id="a-edit-email" type="text" required />
+              </label>
+              <label class="field">
+                <span>Phone Number</span>
+                <input id="a-edit-phone" type="tel" />
+              </label>
+              <label class="field">
+                <span>Role</span>
+                <select id="a-edit-role" style="width: 100%; font: 15px 'Inter', sans-serif; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; outline: none;">
+                  <option value="0">Tailor Shop (Standard User)</option>
+                  <option value="1">🛡️ Administrator</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Reset Password (leave blank to keep unchanged)</span>
+                <input id="a-edit-password" type="password" placeholder="New password" />
+              </label>
+
+              <p id="error-admin-edit" class="error hide" role="alert"></p>
+
+              <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button id="btn-save-edit-tailor" class="btn primary" type="submit" style="flex: 2;">Save Changes</button>
+                <button id="btn-cancel-edit-tailor" class="btn ghost" type="button" style="flex: 1;">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Admin Add Tailor Modal -->
+        <div id="modal-admin-create-tailor" class="hide" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 120; display: flex; align-items: center; justify-content: center; padding: 16px;">
+          <div class="card" style="max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; background: #fff; padding: 24px; border-radius: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="font-size: 20px; margin: 0; color: var(--accent);">Add New Shop &amp; Tailor</h3>
+              <button id="btn-close-create-tailor" type="button" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted);">&times;</button>
+            </div>
+
+            <form id="form-admin-create-tailor" style="display: grid; gap: 14px;">
+              <label class="field">
+                <span>Shop Name *</span>
+                <input id="a-create-shop" type="text" placeholder="e.g. Abochi Fashion Hub" required />
+              </label>
+              <label class="field">
+                <span>Tailor Full Name *</span>
+                <input id="a-create-name" type="text" placeholder="e.g. Baba Abochi" required />
+              </label>
+              <label class="field">
+                <span>Email or Username *</span>
+                <input id="a-create-email" type="text" placeholder="e.g. baba or abochi@gmail.com" required />
+              </label>
+              <label class="field">
+                <span>Phone Number</span>
+                <input id="a-create-phone" type="tel" placeholder="+233..." />
+              </label>
+              <label class="field">
+                <span>Initial Password *</span>
+                <input id="a-create-password" type="password" placeholder="••••••••" required />
+              </label>
+              <label class="field">
+                <span>Role</span>
+                <select id="a-create-role" style="width: 100%; font: 15px 'Inter', sans-serif; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; outline: none;">
+                  <option value="0">Tailor Shop (Standard User)</option>
+                  <option value="1">🛡️ Administrator</option>
+                </select>
+              </label>
+
+              <p id="error-admin-create" class="error hide" role="alert"></p>
+
+              <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button id="btn-submit-create-tailor" class="btn primary" type="submit" style="flex: 2;">Create Account</button>
+                <button id="btn-cancel-create-tailor" class="btn ghost" type="button" style="flex: 1;">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
         <!-- Lightbox Modal for Full View -->
         <div id="modal-lightbox" class="hide" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
           <button id="btn-close-lightbox" style="position: absolute; top: 18px; right: 24px; background: none; border: none; color: white; font-size: 32px; cursor: pointer; line-height: 1;">&times;</button>
-          <img id="lightbox-img" src="" alt="Full view" style="max-height: 75vh; max-width: 90vw; border-radius: 12px; object-fit: contain; box-shadow: 0 8px 32px rgba(0,0,0,0.5);" />
+          <img id="lightbox-img" src="" alt="Full view" style="max-height: 70vh; max-width: 90vw; border-radius: 12px; object-fit: contain; box-shadow: 0 8px 32px rgba(0,0,0,0.5);" />
           <div id="lightbox-caption" style="color: white; margin-top: 16px; text-align: center; max-width: 500px;">
-            <h3 id="lightbox-title" style="font-size: 22px; color: #fff;">Design Title</h3>
-            <p id="lightbox-desc" style="opacity: 0.8; font-size: 14px; margin-top: 4px;"></p>
+            <h3 id="lightbox-title" style="font-size: 22px; color: #fff; margin-bottom: 6px;">Design Title</h3>
+            <p id="lightbox-desc" style="opacity: 0.8; font-size: 14px; margin: 0 0 12px;"></p>
+            <button id="btn-lightbox-select" class="btn primary sm" type="button" style="margin: 0 auto;">Select for Client</button>
           </div>
         </div>
 
@@ -398,6 +500,7 @@
           </div>
         </section>
 
+        <!-- New Client View with Attached Style -->
         <section id="view-form" class="hide">
           <div class="card">
             <h2 class="group-title">Customer</h2>
@@ -409,6 +512,36 @@
                 <div class="prefix"><b>₵</b><input id="f-charge" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" /></div>
               </label>
             </div>
+          </div>
+
+          <!-- Attached Style Section -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h2 class="group-title" style="margin: 0;">Selected Style Design</h2>
+              <button type="button" id="btn-browse-styles" class="btn ghost sm" style="font-size: 13px; color: var(--accent);">Browse Catalog ✂️</button>
+            </div>
+            
+            <div id="wrap-attached-style" class="hide" style="background: var(--accent-soft); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; gap: 14px; align-items: center;">
+              <img id="attached-style-img" src="" alt="Selected style" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #fff;" />
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <strong id="attached-style-title" style="font-size: 16px; color: var(--ink);">Style Name</strong>
+                  <span id="attached-style-category" style="background: var(--accent); color: white; font-size: 11px; padding: 2px 6px; border-radius: 4px;">Category</span>
+                </div>
+                <div id="attached-style-meta" style="font-size: 13px; color: var(--muted); margin-top: 2px;">Men • Adults</div>
+                <div id="attached-style-price" style="font-size: 13px; font-weight: 600; color: var(--accent); margin-top: 2px;">₵ 0.00</div>
+              </div>
+              <button type="button" id="btn-remove-style" class="btn ghost sm" style="color: #b3261e; font-size: 12px;">Remove</button>
+            </div>
+
+            <div id="wrap-no-style" style="text-align: center; padding: 16px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: 14px;">
+              <span>No design style attached yet.</span>
+              <button type="button" id="btn-attach-catalog" style="background: none; border: none; color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: underline; margin-left: 6px;">Pick from catalog</button>
+            </div>
+
+            <input type="hidden" id="f-style-id" />
+            <input type="hidden" id="f-style-name" />
+            <input type="hidden" id="f-style-image" />
           </div>
 
           <div class="unit-row">
@@ -435,11 +568,86 @@
           </div>
         </section>
 
+        <!-- Saved Clients View -->
         <section id="view-saved" class="hide">
           <input id="search" class="search" type="search" placeholder="Search by name or phone" autocomplete="off" />
           <div id="saved-list" class="saved-list"></div>
           <p id="empty" class="empty hide"></p>
         </section>
+
+        <!-- View Client Details Modal -->
+        <div id="modal-client-view" class="hide" style="position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 110; display: flex; align-items: center; justify-content: center; padding: 16px;">
+          <div class="card" style="max-width: 620px; width: 100%; max-height: 90vh; overflow-y: auto; background: #fff; padding: 24px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px;">
+              <div>
+                <h3 id="modal-c-name" style="font-size: 24px; margin: 0; color: var(--ink); font-family: 'Cormorant Garamond', Georgia, serif;">Client Name</h3>
+                <p id="modal-c-contact" style="color: var(--muted); font-size: 14px; margin: 4px 0 0;">Contact Details</p>
+              </div>
+              <button id="btn-close-client-view" type="button" style="background: none; border: none; font-size: 26px; cursor: pointer; color: var(--muted); line-height: 1;">&times;</button>
+            </div>
+
+            <!-- Attached Style Banner -->
+            <div id="modal-c-style-box" class="hide" style="background: var(--accent-soft); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; gap: 14px; align-items: center; margin-bottom: 20px;">
+              <img id="modal-c-style-img" src="" alt="Attached Style" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #fff;" />
+              <div style="flex: 1;">
+                <div style="font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em;">Selected Style</div>
+                <h4 id="modal-c-style-title" style="font-size: 18px; margin: 2px 0; color: var(--ink);">Style Name</h4>
+                <div id="modal-c-style-desc" style="font-size: 13px; color: var(--muted);">Category Details</div>
+              </div>
+            </div>
+
+            <!-- Client Info Cards -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+              <div style="background: var(--bg); padding: 10px 14px; border-radius: 10px;">
+                <div style="font-size: 12px; color: var(--muted);">Measurement Date</div>
+                <div id="modal-c-date" style="font-weight: 600; font-size: 15px; margin-top: 2px;">Date</div>
+              </div>
+              <div style="background: var(--bg); padding: 10px 14px; border-radius: 10px;">
+                <div style="font-size: 12px; color: var(--muted);">Total Charge</div>
+                <div id="modal-c-charge" style="font-weight: 700; font-size: 16px; color: var(--accent); margin-top: 2px;">₵ 0.00</div>
+              </div>
+            </div>
+
+            <!-- Measurements Breakdown -->
+            <div style="margin-bottom: 20px;">
+              <h4 style="font-size: 16px; margin: 0 0 10px; color: var(--accent);">Measurements (<span id="modal-c-unit">in</span>)</h4>
+              <div id="modal-c-measurements" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px;"></div>
+            </div>
+
+            <!-- Material & Notes -->
+            <div id="modal-c-material-box" style="margin-bottom: 12px; background: var(--bg); padding: 12px; border-radius: 10px;">
+              <strong style="font-size: 13px; color: var(--ink); display: block; margin-bottom: 4px;">Fabric / Material:</strong>
+              <div id="modal-c-material" style="font-size: 14px; color: var(--muted);">No material notes.</div>
+            </div>
+
+            <div id="modal-c-notes-box" style="margin-bottom: 20px; background: var(--bg); padding: 12px; border-radius: 10px;">
+              <strong style="font-size: 13px; color: var(--ink); display: block; margin-bottom: 4px;">Tailoring Notes:</strong>
+              <div id="modal-c-notes" style="font-size: 14px; color: var(--muted);">No extra notes.</div>
+            </div>
+
+            <!-- Actions inside View Modal -->
+            <div style="display: flex; gap: 10px; border-top: 1px solid var(--line); padding-top: 16px;">
+              <button id="btn-modal-c-edit" class="btn primary" type="button" style="flex: 1;">✏️ Edit</button>
+              <button id="btn-modal-c-print" class="btn" type="button" style="flex: 1;">🖨️ Print Slip</button>
+              <button id="btn-modal-c-close" class="btn ghost" type="button">Close</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Style Picker Modal (for picking style inside form) -->
+        <div id="modal-style-picker" class="hide" style="position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 110; display: flex; align-items: center; justify-content: center; padding: 16px;">
+          <div class="card" style="max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; background: #fff; padding: 24px; border-radius: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <div>
+                <h3 style="font-size: 22px; margin: 0; color: var(--accent);">Attach Style Design</h3>
+                <p style="color: var(--muted); font-size: 13px; margin: 4px 0 0;">Select a style to associate with this client measurement.</p>
+              </div>
+              <button id="btn-close-style-picker" type="button" style="background: none; border: none; font-size: 26px; cursor: pointer; color: var(--muted);">&times;</button>
+            </div>
+
+            <div id="picker-designs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-top: 12px;"></div>
+          </div>
+        </div>
 
         <section id="view-my-profile" class="hide">
           <div class="card" style="background: var(--accent); color: white; border: none; text-align: center; margin-bottom: 24px; padding: 32px 16px;">
@@ -477,7 +685,7 @@
               </label>
               <label class="field" style="margin-bottom: 16px;">
                 <span>Email Address (Read-only)</span>
-                <input id="p-input-email" type="email" disabled style="background: var(--bg); opacity: 0.7;" />
+                <input id="p-input-email" type="text" disabled style="background: var(--bg); opacity: 0.7;" />
               </label>
               <button id="btn-update-profile" class="btn primary" type="button" style="width: 100%;">Update Profile</button>
             </div>

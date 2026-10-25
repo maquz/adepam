@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2c3e50"/>
+      <stop offset="100%" stop-color="#1a252f"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#aa820a"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg)"/>
+  <!-- Mannequin / Tunic Body -->
+  <path d="M150,80 Q200,95 250,80 L275,140 L240,150 L245,340 L155,340 L160,150 L125,140 Z" fill="#34495e" stroke="#2c3e50" stroke-width="2"/>
+  <!-- Gold Embroidered Neckline & Placket -->
+  <path d="M185,85 L215,85 L210,230 L190,230 Z" fill="url(#gold)"/>
+  <!-- Collar -->
+  <path d="M180,80 Q200,90 220,80 L225,65 Q200,75 175,65 Z" fill="#2c3e50" stroke="url(#gold)" stroke-width="2"/>
+  <!-- Chest Pocket Detail -->
+  <rect x="215" y="140" width="25" height="4" fill="url(#gold)"/>
+  <!-- Slits and hem accents -->
+  <line x1="155" y1="300" x2="155" y2="340" stroke="url(#gold)" stroke-width="3"/>
+  <line x1="245" y1="300" x2="245" y2="340" stroke="url(#gold)" stroke-width="3"/>
+  <!-- Label -->
+  <text x="200" y="375" text-anchor="middle" fill="#d4af37" font-family="'Inter', sans-serif" font-weight="600" font-size="14" letter-spacing="1.5">ROYAL SENATOR KAFTAN</text>
+</svg>
